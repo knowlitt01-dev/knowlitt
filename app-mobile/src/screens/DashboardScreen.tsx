@@ -6,8 +6,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/AuthContext';
 import { api } from '../lib/api';
-import { colors, spacing, radius, typography, shadows } from '../lib/theme';
-import DailyDigest from '../components/DailyDigest';
 
 interface Book {
   id: string;
@@ -21,7 +19,6 @@ export default function DashboardScreen({ navigation }: any) {
   const [dueCount, setDueCount] = useState(0);
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [digestRefreshKey, setDigestRefreshKey] = useState(0);
 
   const loadAll = useCallback(async () => {
     try {
@@ -43,145 +40,193 @@ export default function DashboardScreen({ navigation }: any) {
 
   async function handleRefresh() {
     setRefreshing(true);
-    setDigestRefreshKey((k) => k + 1);
     await loadAll();
     setRefreshing(false);
   }
 
-  const firstName = user?.email?.split('@')[0] || 'Reader';
+  const firstName = user?.email?.split('@')[0] || 'Alex';
   const activeBook = books.find(b => b.status === 'ready' || b.status === 'processing') || books[0];
-
-  const quickActions = [
-    { label: 'Upload Book', icon: '📤', route: 'Books' },
-    { label: 'Connect Drive', icon: '🔌', route: 'Connectors' },
-    { label: 'Flashcards', icon: '🗂️', route: 'Review' },
-    { label: 'Roadmap', icon: '🗺️', route: 'Roadmap' },
-  ];
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#C4B5FD" colors={['#4F46E5']} />}
     >
-      {/* Greeting Header & Streak Counter */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greetingText}>Hello,</Text>
-          <Text style={styles.userName}>{firstName} 👋</Text>
-        </View>
-        <View style={styles.streakBadge}>
-          <Text style={styles.streakEmoji}>🔥</Text>
-          <Text style={styles.streakCount}>7</Text>
-          <Text style={styles.streakSub}>days</Text>
-        </View>
-      </View>
-
-      {/* Daily Digest */}
-      <DailyDigest key={digestRefreshKey} />
-
-      {/* Due Flashcards Callout */}
-      {dueCount > 0 && (
-        <TouchableOpacity style={styles.reviewCta} onPress={() => navigation.navigate('Review')}>
-          <View style={styles.reviewCtaLeft}>
-            <Text style={styles.reviewCtaEmoji}>📚</Text>
-            <View>
-              <Text style={styles.reviewCtaTitle}>Review {dueCount} due card{dueCount !== 1 ? 's' : ''}</Text>
-              <Text style={styles.reviewCtaDesc}>Maintain your reading retention streak</Text>
+      {/* Top App Bar & Greeting Header */}
+      <View style={styles.topHeader}>
+        <View style={styles.userRow}>
+          <View style={styles.avatarGlow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{firstName[0]?.toUpperCase() || 'A'}</Text>
             </View>
           </View>
-          <Text style={styles.reviewArrow}>→</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Today's Reading Hero Card */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Today's Reading</Text>
-      </View>
-      {activeBook ? (
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>READING NOW</Text>
-            </View>
-            <Text style={styles.heroTitle} numberOfLines={1}>{activeBook.title}</Text>
-            <Text style={styles.heroSubtitle}>Chapter 3 · Est. 12 mins left</Text>
-          </View>
-          <View style={styles.heroBottom}>
-            <Text style={styles.heroPoints}>⭐ +24 pts today</Text>
-            <TouchableOpacity 
-              style={styles.heroButton}
-              onPress={() => navigation.navigate('Roadmap', { bookId: activeBook.id })}
-            >
-              <Text style={styles.heroButtonText}>Start Reading</Text>
-            </TouchableOpacity>
+          <View>
+            <Text style={styles.greetingText}>Good morning,</Text>
+            <Text style={styles.userName}>{firstName} 👋</Text>
           </View>
         </View>
-      ) : (
-        <View style={styles.emptyHeroCard}>
-          <Text style={styles.emptyHeroText}>No books uploaded yet.</Text>
-          <TouchableOpacity 
-            style={styles.emptyHeroBtn}
-            onPress={() => navigation.navigate('Books')}
-          >
-            <Text style={styles.emptyHeroBtnText}>Upload a Book</Text>
+
+        <View style={styles.headerRightActions}>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakEmoji}>🔥</Text>
+            <Text style={styles.streakCount}>5</Text>
+            <Text style={styles.streakSub}>Days</Text>
+          </View>
+          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
+            <Text style={styles.bellIcon}>🔔</Text>
+            <View style={styles.bellDot} />
           </TouchableOpacity>
         </View>
-      )}
+      </View>
 
-      {/* Continue Reading shelf */}
-      {books.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Continue Reading</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Books')}>
-              <Text style={styles.viewAllText}>See all</Text>
-            </TouchableOpacity>
+      {/* Overview Quick Stats Card */}
+      <View style={styles.statsCard}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statVal}>{books.length || 4}</Text>
+            <Text style={styles.statLbl}>Books Active</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelfScroll}>
-            {books.map((book, idx) => {
-              const progress = ((idx * 17 + 10) % 90) + 5;
-              return (
-                <TouchableOpacity 
-                  key={book.id}
-                  style={styles.shelfCard}
-                  onPress={() => navigation.navigate('Roadmap', { bookId: book.id })}
-                >
-                  <View style={styles.shelfBookIconContainer}>
-                    <Text style={styles.shelfBookIcon}>📘</Text>
-                  </View>
-                  <Text style={styles.shelfBookTitle} numberOfLines={2}>{book.title}</Text>
-                  <View style={styles.shelfProgressContainer}>
-                    <View style={styles.shelfProgressBar}>
-                      <View style={[styles.shelfProgressFill, { width: `${progress}%` }]} />
-                    </View>
-                    <Text style={styles.shelfProgressText}>{progress}% done</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statVal}>182</Text>
+            <Text style={styles.statLbl}>Cards Mastered</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statVal}>78%</Text>
+            <Text style={styles.statLbl}>Daily Goal</Text>
+          </View>
         </View>
-      )}
 
-      {/* Quick Actions Grid */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.grid}>
-          {quickActions.map((action, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.gridCard}
-              onPress={() => navigation.navigate(action.route)}
-            >
-              <View style={styles.gridCardIconContainer}>
-                <Text style={styles.gridCardIcon}>{action.icon}</Text>
-              </View>
-              <Text style={styles.gridCardLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Daily Goal Bar */}
+        <View style={styles.goalTrackContainer}>
+          <View style={styles.goalTrackHeader}>
+            <Text style={styles.goalTrackTitle}>Daily Retention Goal</Text>
+            <Text style={styles.goalTrackSub}>18 / 25 mins</Text>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View style={[styles.progressBarFill, { width: '78%' }]} />
+          </View>
         </View>
       </View>
+
+      {/* AI Quick Actions Bar */}
+      <View style={styles.quickToolsStrip}>
+        <TouchableOpacity style={styles.toolPill} onPress={() => navigation.navigate('Books')}>
+          <Text style={styles.toolIcon}>✨</Text>
+          <Text style={styles.toolText}>AI Summary</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolPill} onPress={() => navigation.navigate('Review')}>
+          <Text style={styles.toolIcon}>🗂️</Text>
+          <Text style={styles.toolText}>Flashcards</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolPill} onPress={() => navigation.navigate('Discover')}>
+          <Text style={styles.toolIcon}>🎯</Text>
+          <Text style={styles.toolText}>Quiz Me</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Daily Flashcard Review Deck Section */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Daily Flashcard Review</Text>
+          <View style={styles.badgePill}>
+            <Text style={styles.badgePillText}>Spaced Repetition</Text>
+          </View>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.deckCard}
+        onPress={() => navigation.navigate('Review')}
+        activeOpacity={0.9}
+      >
+        <View style={styles.deckTopRow}>
+          <View style={styles.bookTag}>
+            <Text style={styles.bookTagIcon}>📘</Text>
+            <Text style={styles.bookTagText}>Atomic Habits</Text>
+          </View>
+          <Text style={styles.dueBadge}>{dueCount > 0 ? `${dueCount} due` : '12 due today'}</Text>
+        </View>
+
+        <Text style={styles.deckChapterTitle}>Chapter 4: The 1st Law (Make it Obvious)</Text>
+        <Text style={styles.deckChapterDesc}>
+          Review key cues, implementation intentions, and habit stacking anchors.
+        </Text>
+
+        <View style={styles.deckBottomRow}>
+          <View style={styles.retentionPill}>
+            <Text style={styles.retentionIcon}>⚡</Text>
+            <Text style={styles.retentionText}>High Retention Mode</Text>
+          </View>
+
+          <View style={styles.reviewBtn}>
+            <Text style={styles.reviewBtnText}>Review Now</Text>
+            <Text style={styles.reviewBtnArrow}>➔</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* My Library Section */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>My Library</Text>
+        <TouchableOpacity
+          style={styles.uploadBtn}
+          onPress={() => navigation.navigate('Books')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.uploadBtnIcon}>+</Text>
+          <Text style={styles.uploadBtnText}>Upload Book</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.libraryScroll}>
+        <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')}>
+          <View style={styles.bookCover}>
+            <Text style={styles.bookCoverEmoji}>🧠</Text>
+            <View style={styles.progressChip}>
+              <Text style={styles.progressChipText}>68%</Text>
+            </View>
+          </View>
+          <Text style={styles.bookTitle} numberOfLines={1}>Atomic Habits</Text>
+          <Text style={styles.bookAuthor}>James Clear</Text>
+          <View style={styles.chapterBadge}>
+            <Text style={styles.chapterBadgeText}>Ch 4 of 10 · Active</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')}>
+          <View style={[styles.bookCover, { backgroundColor: '#1E1B4B' }]}>
+            <Text style={styles.bookCoverEmoji}>💡</Text>
+            <View style={styles.progressChip}>
+              <Text style={styles.progressChipText}>42%</Text>
+            </View>
+          </View>
+          <Text style={styles.bookTitle} numberOfLines={1}>Deep Work</Text>
+          <Text style={styles.bookAuthor}>Cal Newport</Text>
+          <View style={styles.chapterBadge}>
+            <Text style={styles.chapterBadgeText}>Ch 2 of 7 · Summary</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')}>
+          <View style={[styles.bookCover, { backgroundColor: '#172554' }]}>
+            <Text style={styles.bookCoverEmoji}>📊</Text>
+            <View style={styles.progressChip}>
+              <Text style={styles.progressChipText}>15%</Text>
+            </View>
+          </View>
+          <Text style={styles.bookTitle} numberOfLines={1}>Thinking, Fast</Text>
+          <Text style={styles.bookAuthor}>D. Kahneman</Text>
+          <View style={styles.chapterBadge}>
+            <Text style={styles.chapterBadgeText}>Ch 1 of 12</Text>
+          </View>
+        </TouchableOpacity>
+      </ScrollView>
+
     </ScrollView>
   );
 }
@@ -189,269 +234,401 @@ export default function DashboardScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0B1326', // Nocturne Luminary Dark Canvas
   },
   content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xl2 * 2,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 20,
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarGlow: {
+    padding: 2,
+    borderRadius: 18,
+    backgroundColor: 'rgba(124, 58, 237, 0.3)',
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#171F33',
+    borderWidth: 1.5,
+    borderColor: '#C4B5FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#DAE2FD',
+    fontWeight: '800',
+    fontSize: 18,
   },
   greetingText: {
-    fontSize: 14,
-    color: colors.subtext,
-    fontFamily: typography.fontFamily,
+    fontSize: 12,
+    color: '#94A3B8',
   },
   userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.text,
-    fontFamily: typography.fontFamily,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    letterSpacing: -0.3,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accentSurface,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
-    borderColor: colors.accentLight,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 4,
   },
   streakEmoji: {
     fontSize: 14,
-    marginRight: 4,
   },
   streakCount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.accentDark,
-    marginRight: 2,
+    color: '#F59E0B',
+    fontWeight: '800',
+    fontSize: 13,
   },
   streakSub: {
+    color: '#F59E0B',
     fontSize: 10,
-    color: colors.accentDark,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  reviewCta: {
+  bellButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#171F33',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  bellIcon: {
+    fontSize: 16,
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  statsCard: {
+    backgroundColor: '#171F33',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.15)',
+    marginBottom: 20,
+  },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    padding: spacing.md2,
-    marginVertical: spacing.md,
-    ...shadows.primary,
+    marginBottom: 16,
   },
-  reviewCtaLeft: {
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statVal: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#DAE2FD',
+  },
+  statLbl: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  goalTrackContainer: {
+    backgroundColor: '#0B1326',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  goalTrackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  goalTrackTitle: {
+    color: '#DAE2FD',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  goalTrackSub: {
+    color: '#C4B5FD',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#4F46E5',
+    borderRadius: 3,
+  },
+  quickToolsStrip: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 22,
+  },
+  toolPill: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    backgroundColor: '#171F33',
+    borderRadius: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 6,
   },
-  reviewCtaEmoji: {
-    fontSize: 20,
-  },
-  reviewCtaTitle: {
-    color: '#fff',
-    fontWeight: '700',
+  toolIcon: {
     fontSize: 14,
   },
-  reviewCtaDesc: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-  },
-  reviewArrow: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 18,
-  },
-  section: {
-    marginTop: spacing.xl,
+  toolText: {
+    color: '#DAE2FD',
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
-    marginTop: spacing.md,
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    letterSpacing: -0.3,
   },
-  viewAllText: {
+  badgePill: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+  },
+  badgePillText: {
+    color: '#C4B5FD',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  deckCard: {
+    backgroundColor: '#171F33',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 58, 237, 0.3)',
+    marginBottom: 24,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  deckTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  bookTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0B1326',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 6,
+  },
+  bookTagIcon: {
     fontSize: 12,
-    color: colors.primary,
+  },
+  bookTagText: {
+    color: '#DAE2FD',
+    fontSize: 12,
     fontWeight: '600',
   },
-  heroCard: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    ...shadows.primary,
-  },
-  heroTop: {
-    marginBottom: spacing.lg,
-  },
-  heroBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  heroBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  heroTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.7)',
+  dueBadge: {
+    color: '#C4B5FD',
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '700',
   },
-  heroBottom: {
+  deckChapterTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginBottom: 6,
+  },
+  deckChapterDesc: {
+    fontSize: 13,
+    color: '#94A3B8',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  deckBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    paddingTop: spacing.md,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 14,
   },
-  heroPoints: {
-    color: colors.accent,
-    fontWeight: '700',
-    fontSize: 13,
+  retentionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  heroButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 8,
-    borderRadius: radius.md,
-  },
-  heroButtonText: {
-    color: colors.primary,
-    fontWeight: '700',
+  retentionIcon: {
     fontSize: 12,
   },
-  emptyHeroCard: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: radius.xl,
-    padding: spacing.xl2,
+  retentionText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  reviewBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  emptyHeroText: {
-    color: colors.subtext,
-    fontSize: 13,
-    marginBottom: spacing.md,
-  },
-  emptyHeroBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: radius.md,
+    borderRadius: 14,
+    gap: 6,
   },
-  emptyHeroBtnText: {
-    color: '#fff',
-    fontWeight: '600',
+  reviewBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 13,
   },
-  shelfScroll: {
-    paddingLeft: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  shelfCard: {
-    width: 130,
-    backgroundColor: '#fff',
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginRight: spacing.sm2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  shelfBookIconContainer: {
-    backgroundColor: colors.primarySurface,
-    borderRadius: radius.md,
-    height: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  shelfBookIcon: {
-    fontSize: 28,
-  },
-  shelfBookTitle: {
+  reviewBtnArrow: {
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    height: 32,
-    lineHeight: 16,
   },
-  shelfProgressContainer: {
-    marginTop: spacing.xs,
-  },
-  shelfProgressBar: {
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  shelfProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  shelfProgressText: {
-    fontSize: 9,
-    color: colors.subtext,
-    marginTop: 2,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  gridCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: radius.lg,
-    padding: spacing.md2,
+  uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
+    borderColor: 'rgba(196, 181, 253, 0.25)',
+    gap: 4,
   },
-  gridCardIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.md,
-    backgroundColor: colors.gray100,
+  uploadBtnIcon: {
+    color: '#C4B5FD',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  uploadBtnText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  libraryScroll: {
+    gap: 12,
+    paddingRight: 10,
+  },
+  bookCard: {
+    width: 140,
+    backgroundColor: '#171F33',
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  bookCover: {
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#1E1B4B',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    position: 'relative',
+    marginBottom: 10,
   },
-  gridCardIcon: {
-    fontSize: 16,
+  bookCoverEmoji: {
+    fontSize: 32,
   },
-  gridCardLabel: {
-    fontSize: 12,
+  progressChip: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(11, 19, 38, 0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.3)',
+  },
+  progressChipText: {
+    color: '#C4B5FD',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  bookTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DAE2FD',
+  },
+  bookAuthor: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginBottom: 6,
+  },
+  chapterBadge: {
+    backgroundColor: '#0B1326',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  chapterBadgeText: {
+    color: '#64748B',
+    fontSize: 10,
     fontWeight: '600',
-    color: colors.text,
   },
 });
+

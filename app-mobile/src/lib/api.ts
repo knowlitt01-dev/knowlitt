@@ -54,7 +54,12 @@ async function request(path: string, options: RequestInit = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch (err: any) {
+    throw new ApiError(0, `Network request failed. Could not connect to backend at ${API_URL}. Ensure backend is running on 0.0.0.0:8000.`);
+  }
 
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;

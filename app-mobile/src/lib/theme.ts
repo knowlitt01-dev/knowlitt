@@ -76,6 +76,8 @@ export const radius = {
   lg:  16,
   lg2: 18,
   xl:  20,
+  xl2: 24,
+  full: 9999,
 };
 
 export const typography = {

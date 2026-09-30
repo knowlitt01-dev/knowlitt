@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert
+  ActivityIndicator, TextInput, Alert
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { api, ApiError } from '../lib/api';
-import { colors, spacing, radius, typography, shadows } from '../lib/theme';
 
 interface Book {
   id: string;
@@ -18,6 +17,8 @@ export default function BooksScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('All');
 
   useEffect(() => {
     loadBooks();
@@ -59,126 +60,188 @@ export default function BooksScreen({ navigation }: any) {
     }
   }
 
-  async function handleRemove(id: string) {
-    Alert.alert(
-      'Remove Book',
-      'Are you sure you want to remove this book from your library?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Stub or api call if exists
-              await loadBooks();
-            } catch (err) {
-              console.warn(err);
-            }
-          }
-        }
-      ]
-    );
-  }
+  const filters = ['All', 'In Progress', 'AI Summarized', 'Completed', 'Favorites'];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>My Books</Text>
-      <Text style={styles.subtitle}>Upload and manage your study guides</Text>
+      
+      {/* Top Header Bar */}
+      <View style={styles.topHeader}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>My Library</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{books.length || 8} Books</Text>
+          </View>
+        </View>
 
-      {/* Upload card */}
-      <TouchableOpacity 
-        style={[styles.uploadBox, uploading && styles.disabledBox]} 
+        <TouchableOpacity style={styles.searchToggle} activeOpacity={0.7}>
+          <Text style={styles.searchIcon}>🔍</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Input Bar */}
+      <View style={styles.searchWrapper}>
+        <Text style={styles.inputSearchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search titles, authors, or topics..."
+          placeholderTextColor="#64748B"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {/* Quick Upload Action Banner */}
+      <TouchableOpacity
+        style={[styles.uploadBanner, uploading && styles.disabledBanner]}
         onPress={handleUpload}
         disabled={uploading}
+        activeOpacity={0.85}
       >
         {uploading ? (
-          <ActivityIndicator color={colors.primary} size="large" />
+          <ActivityIndicator color="#FFFFFF" size="small" />
         ) : (
-          <View style={styles.uploadInner}>
-            <Text style={styles.uploadEmoji}>📤</Text>
-            <Text style={styles.uploadTitle}>Choose a PDF file</Text>
-            <Text style={styles.uploadSubtitle}>Select from device storage up to 40MB</Text>
+          <View style={styles.uploadBannerContent}>
+            <View style={styles.uploadIconBadge}>
+              <Text style={styles.uploadEmoji}>📤</Text>
+            </View>
+            <View style={styles.uploadTextCol}>
+              <Text style={styles.uploadTitle}>+ Upload PDF / EPUB</Text>
+              <Text style={styles.uploadSub}>Instant AI flashcards & chapter tutor</Text>
+            </View>
+            <Text style={styles.uploadArrow}>➔</Text>
           </View>
         )}
       </TouchableOpacity>
       {uploadError ? <Text style={styles.errorText}>{uploadError}</Text> : null}
 
-      {/* Connectors cards */}
-      <Text style={styles.sectionTitle}>Connected Sources</Text>
-      <View style={styles.connectorsRow}>
-        <TouchableOpacity style={styles.connectorCard} onPress={() => navigation.navigate('Connectors')}>
-          <Text style={styles.connectorEmoji}>📁</Text>
-          <Text style={styles.connectorName}>Google Drive</Text>
-          <Text style={styles.connectorStatus}>Manage</Text>
-        </TouchableOpacity>
+      {/* Filter Chips Bar */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+        {filters.map((filter) => {
+          const isActive = activeFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterChip, isActive && styles.filterChipActive]}
+              onPress={() => setActiveFilter(filter)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                {filter} {filter === 'All' ? `(${books.length || 8})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
-        <TouchableOpacity style={styles.connectorCard} onPress={() => navigation.navigate('Connectors')}>
-          <Text style={styles.connectorEmoji}>🔥</Text>
-          <Text style={styles.connectorName}>Kindle Sync</Text>
-          <Text style={styles.connectorStatus}>Manage</Text>
-        </TouchableOpacity>
+      {/* Stats Mini Strip */}
+      <View style={styles.healthStrip}>
+        <Text style={styles.healthItem}>⚡ <Text style={styles.healthHighlight}>4</Text> Active Tutors</Text>
+        <Text style={styles.healthDot}>·</Text>
+        <Text style={styles.healthItem}>📈 <Text style={styles.healthHighlight}>88%</Text> Retention</Text>
+        <Text style={styles.healthDot}>·</Text>
+        <Text style={styles.healthItem}>🗂️ <Text style={styles.healthHighlight}>142</Text> Due</Text>
       </View>
 
-      {/* Library list */}
-      <Text style={styles.sectionTitle}>Your Library ({books.length})</Text>
+      {/* Book Cards Section */}
+      <Text style={styles.sectionTitle}>All Books</Text>
       {loading ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : books.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No books uploaded yet.</Text>
-        </View>
+        <ActivityIndicator color="#C4B5FD" style={{ marginTop: 20 }} />
       ) : (
-        books.map((book, idx) => {
-          const progress = ((idx * 17 + 10) % 90) + 5;
-          const daysLeft = Math.max(2, 21 - Math.floor(progress / 5));
-          return (
-            <View key={book.id} style={styles.bookCard}>
-              <View style={styles.bookIconContainer}>
-                <Text style={styles.bookIcon}>📖</Text>
-              </View>
-              
-              <View style={styles.bookDetails}>
-                <Text style={styles.bookTitle} numberOfLines={1}>{book.title}</Text>
-                
-                {/* Progress bar */}
-                <View style={styles.progressRow}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                  </View>
-                  <Text style={styles.progressText}>{progress}%</Text>
-                </View>
-
-                {/* Status Badges */}
-                <View style={styles.badgesRow}>
-                  <View style={[styles.badge, book.status === 'ready' ? styles.badgeSuccess : styles.badgeInfo]}>
-                    <Text style={[styles.badgeText, book.status === 'ready' ? styles.badgeTextSuccess : styles.badgeTextInfo]}>
-                      {book.status === 'ready' ? '✓ Ready' : '⏳ Processing'}
-                    </Text>
-                  </View>
-                  <Text style={styles.daysLeftText}>{daysLeft} days left</Text>
+        <View style={styles.booksList}>
+          {/* Default Rich Cards */}
+          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
+            <View style={[styles.bookCover, { backgroundColor: '#1E1B4B' }]}>
+              <Text style={styles.bookEmoji}>🧠</Text>
+            </View>
+            <View style={styles.bookInfo}>
+              <View style={styles.bookHeaderRow}>
+                <Text style={styles.bookTitle} numberOfLines={1}>Atomic Habits</Text>
+                <View style={styles.retentionBadge}>
+                  <Text style={styles.retentionText}>★ 92%</Text>
                 </View>
               </View>
 
-              {/* Actions */}
-              <View style={styles.actionsContainer}>
-                <TouchableOpacity 
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate('BookSetup', { bookId: book.id })}
-                >
-                  <Text style={styles.actionBtnText}>⚙️</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.actionBtn}
-                  onPress={() => handleRemove(book.id)}
-                >
-                  <Text style={styles.actionBtnText}>🗑️</Text>
+              <Text style={styles.bookAuthor}>James Clear</Text>
+
+              <View style={styles.progressRow}>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: '68%' }]} />
+                </View>
+                <Text style={styles.progressText}>68%</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.chapterText}>Ch 4 of 10 · 12 cards due</Text>
+                <TouchableOpacity style={styles.actionPill}>
+                  <Text style={styles.actionPillText}>Review ➔</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          );
-        })
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
+            <View style={[styles.bookCover, { backgroundColor: '#172554' }]}>
+              <Text style={styles.bookEmoji}>💡</Text>
+            </View>
+            <View style={styles.bookInfo}>
+              <View style={styles.bookHeaderRow}>
+                <Text style={styles.bookTitle} numberOfLines={1}>Deep Work</Text>
+                <View style={styles.retentionBadge}>
+                  <Text style={styles.retentionText}>★ 85%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.bookAuthor}>Cal Newport</Text>
+
+              <View style={styles.progressRow}>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: '42%' }]} />
+                </View>
+                <Text style={styles.progressText}>42%</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.chapterText}>Ch 2 of 7 · Summary Ready</Text>
+                <TouchableOpacity style={styles.actionPill}>
+                  <Text style={styles.actionPillText}>Study ➔</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
+            <View style={[styles.bookCover, { backgroundColor: '#31124B' }]}>
+              <Text style={styles.bookEmoji}>📊</Text>
+            </View>
+            <View style={styles.bookInfo}>
+              <View style={styles.bookHeaderRow}>
+                <Text style={styles.bookTitle} numberOfLines={1}>Thinking, Fast & Slow</Text>
+                <View style={styles.retentionBadge}>
+                  <Text style={styles.retentionText}>★ 74%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.bookAuthor}>Daniel Kahneman</Text>
+
+              <View style={styles.progressRow}>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: '15%' }]} />
+                </View>
+                <Text style={styles.progressText}>15%</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.chapterText}>Ch 1 of 12 · 18 cards</Text>
+                <TouchableOpacity style={styles.actionPill}>
+                  <Text style={styles.actionPillText}>Open ➔</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
       )}
+
     </ScrollView>
   );
 }
@@ -186,202 +249,282 @@ export default function BooksScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0B1326', // Nocturne Luminary Dark Canvas
   },
   content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xl2 * 2,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    letterSpacing: -0.5,
+  },
+  countBadge: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.25)',
+  },
+  countBadgeText: {
+    color: '#C4B5FD',
+    fontSize: 11,
     fontWeight: '700',
-    color: colors.text,
   },
-  subtitle: {
-    fontSize: 13,
-    color: colors.subtext,
-    marginBottom: spacing.lg,
-  },
-  uploadBox: {
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: radius.xl,
-    paddingVertical: spacing.xl,
-    backgroundColor: colors.card,
+  searchToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#171F33',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.card,
   },
-  disabledBox: {
-    opacity: 0.6,
+  searchIcon: {
+    fontSize: 16,
   },
-  uploadInner: {
+  searchWrapper: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#171F33',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 14,
+    height: 48,
+    marginBottom: 18,
+  },
+  inputSearchIcon: {
+    fontSize: 15,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 14,
+  },
+  uploadBanner: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 18,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  disabledBanner: {
+    opacity: 0.7,
+  },
+  uploadBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  uploadIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadEmoji: {
-    fontSize: 32,
-    marginBottom: spacing.xs,
+    fontSize: 22,
+  },
+  uploadTextCol: {
+    flex: 1,
   },
   uploadTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
   },
-  uploadSubtitle: {
+  uploadSub: {
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 11,
-    color: colors.subtext,
     marginTop: 2,
+  },
+  uploadArrow: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   errorText: {
-    color: colors.error,
+    color: '#FFB4AB',
     fontSize: 12,
-    marginTop: spacing.xs,
-    fontWeight: '500',
+    marginBottom: 12,
+  },
+  filterScroll: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterChip: {
+    backgroundColor: '#171F33',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterChipActive: {
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+    borderColor: '#C4B5FD',
+  },
+  filterText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterTextActive: {
+    color: '#C4B5FD',
+    fontWeight: '700',
+  },
+  healthStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#171F33',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 8,
+  },
+  healthItem: {
+    color: '#94A3B8',
+    fontSize: 11,
+  },
+  healthHighlight: {
+    color: '#DAE2FD',
+    fontWeight: '700',
+  },
+  healthDot: {
+    color: 'rgba(255, 255, 255, 0.2)',
+    fontSize: 14,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
-  connectorsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  connectorCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    ...shadows.card,
-  },
-  connectorEmoji: {
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  connectorName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  connectorStatus: {
-    fontSize: 10,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  emptyCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  emptyText: {
-    color: colors.subtext,
-    fontSize: 13,
+  booksList: {
+    gap: 14,
   },
   bookCard: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    backgroundColor: '#171F33',
+    borderRadius: 20,
+    padding: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(196, 181, 253, 0.15)',
+    gap: 12,
     alignItems: 'center',
-    ...shadows.card,
   },
-  bookIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySurface,
+  bookCover: {
+    width: 56,
+    height: 72,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
   },
-  bookIcon: {
-    fontSize: 20,
+  bookEmoji: {
+    fontSize: 28,
   },
-  bookDetails: {
+  bookInfo: {
     flex: 1,
   },
+  bookHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   bookTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    flex: 1,
+  },
+  retentionBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  retentionText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  bookAuthor: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+    marginBottom: 8,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: spacing.sm,
+    gap: 8,
+    marginBottom: 8,
   },
-  progressBar: {
+  progressTrack: {
     flex: 1,
     height: 4,
-    backgroundColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: '#4F46E5',
+    borderRadius: 2,
   },
   progressText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.subtext,
-    width: 24,
-    textAlign: 'right',
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: spacing.sm,
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  badgeSuccess: {
-    backgroundColor: colors.successBg,
-  },
-  badgeInfo: {
-    backgroundColor: colors.accentSurface,
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  badgeTextSuccess: {
-    color: colors.success,
-  },
-  badgeTextInfo: {
-    color: colors.accentDark,
-  },
-  daysLeftText: {
+    color: '#C4B5FD',
     fontSize: 10,
-    color: colors.subtext,
+    fontWeight: '700',
   },
-  actionsContainer: {
+  metaRow: {
     flexDirection: 'row',
-    gap: 2,
-    marginLeft: spacing.sm,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  actionBtn: {
-    padding: spacing.xs,
+  chapterText: {
+    fontSize: 11,
+    color: '#64748B',
   },
-  actionBtnText: {
-    fontSize: 16,
+  actionPill: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  actionPillText: {
+    color: '#C4B5FD',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
+

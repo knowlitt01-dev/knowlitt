@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { api } from '../lib/api';
-import { colors, spacing, radius, typography, shadows } from '../lib/theme';
 
 interface DueCard {
   card_id: string;
@@ -24,12 +23,12 @@ export default function ReviewScreen({ navigation }: any) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleResponse(response: 'again' | 'got_it') {
+  async function handleResponse(response: 'again' | 'hard' | 'good' | 'easy') {
     const card = cards[current];
     setSubmitting(true);
     try {
-      // Map 'got_it' to 'good' for API compatibility
-      await api.submitReview(card.card_id, response === 'got_it' ? 'good' : 'again');
+      const apiRating = response === 'again' ? 'again' : 'good';
+      await api.submitReview(card.card_id, apiRating);
       if (current + 1 >= cards.length) {
         setDone(true);
       } else {
@@ -46,8 +45,8 @@ export default function ReviewScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.loadingText}>Loading your review session...</Text>
+        <ActivityIndicator color="#C4B5FD" size="large" />
+        <Text style={styles.loadingText}>Loading your spaced repetition deck...</Text>
       </View>
     );
   }
@@ -55,211 +54,515 @@ export default function ReviewScreen({ navigation }: any) {
   if ((cards.length === 0 && !done) || done) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.trophyEmoji}>🏆</Text>
-        <Text style={styles.doneTitle}>{done ? 'Session Complete!' : 'All caught up!'}</Text>
+        <View style={styles.trophyContainer}>
+          <Text style={styles.trophyEmoji}>🏆</Text>
+        </View>
+        <Text style={styles.doneTitle}>{done ? 'Session Completed!' : 'All Caught Up!'}</Text>
         <Text style={styles.doneSubtitle}>
-          {done ? `You reviewed ${cards.length} cards.` : 'No cards due for review right now.'}
+          {done ? `Awesome job! You reviewed ${cards.length} cards today.` : 'No cards due for review right now. Great work!'}
         </Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.primaryButtonText}>Back to Dashboard</Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('HomeTab')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryButtonText}>Return to Dashboard ➔</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const card = cards[current];
-  const progressPercent = cards.length > 0 ? (current / cards.length) * 100 : 0;
+  const total = cards.length || 12;
+  const progressPercent = ((current + 1) / total) * 100;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.progress}>Card {current + 1} of {cards.length}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       
-      {/* Progress Bar */}
-      <View style={styles.progressBarBg}>
+      {/* Top Session Bar */}
+      <View style={styles.topSessionBar}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+
+        <View style={styles.sessionTimerBadge}>
+          <Text style={styles.timerText}>⏱ 04:21</Text>
+        </View>
+
+        <View style={styles.streakBadge}>
+          <Text style={styles.streakText}>🔥 5 Days</Text>
+        </View>
+      </View>
+
+      {/* Progress Header */}
+      <View style={styles.progressRow}>
+        <Text style={styles.progressText}>Card {current + 1} of {total}</Text>
+        <Text style={styles.progressPercentText}>{Math.round(progressPercent)}% Completed</Text>
+      </View>
+      <View style={styles.progressBarTrack}>
         <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
       </View>
 
-      {/* Card Body */}
+      {/* Context Badge */}
+      <View style={styles.bookBadge}>
+        <Text style={styles.bookBadgeIcon}>📘</Text>
+        <Text style={styles.bookBadgeText}>Atomic Habits — Chapter 4: Make It Obvious</Text>
+      </View>
+
+      {/* Interactive 3D Card Container */}
       <TouchableOpacity
-        style={[styles.flashcard, flipped ? styles.flashcardFlipped : styles.flashcardNormal]}
+        style={[styles.flashcard, flipped && styles.flashcardFlipped]}
         onPress={() => setFlipped(!flipped)}
         activeOpacity={0.9}
         disabled={submitting}
       >
-        <Text style={[styles.flashcardLabel, flipped ? styles.flashcardLabelFlipped : styles.flashcardLabelNormal]}>
-          {flipped ? 'Answer' : 'Question'}
-        </Text>
-        <Text style={styles.flashcardText}>{flipped ? card.back : card.front}</Text>
-        {!flipped && (
-          <Text style={styles.tapTip}>Tap to flip</Text>
+        <View style={styles.cardHeader}>
+          <View style={styles.categoryTag}>
+            <Text style={styles.categoryTagText}>✦ Concept Ingestion</Text>
+          </View>
+          <Text style={styles.cardStateLabel}>{flipped ? 'ANSWER' : 'QUESTION'}</Text>
+        </View>
+
+        {!flipped ? (
+          <View style={styles.frontContent}>
+            <Text style={styles.frontQuestion}>
+              {card.front || 'What is the 1st Law of Behavior Change according to James Clear?'}
+            </Text>
+
+            <View style={styles.excerptBox}>
+              <Text style={styles.excerptText}>
+                "Environment is the invisible hand that shapes human behavior. We are constantly responding to stimuli..."
+              </Text>
+            </View>
+
+            <View style={styles.flipPrompt}>
+              <Text style={styles.flipPromptText}>Tap card to reveal answer 🔄</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.backContent}>
+            <Text style={styles.answerHeadline}>
+              {card.back || 'Make it Obvious'}
+            </Text>
+
+            <View style={styles.takeawayList}>
+              <Text style={styles.takeawayItem}>• 1. Implementation Intentions ("I will [BEHAVIOR] at [TIME] in [LOCATION]")</Text>
+              <Text style={styles.takeawayItem}>• 2. Habit Stacking: Pair a new habit with an existing cue</Text>
+              <Text style={styles.takeawayItem}>• 3. Environment Design: Make positive cues visual and prominent</Text>
+            </View>
+
+            <View style={styles.aiInsightBox}>
+              <Text style={styles.aiInsightTitle}>💡 AI Deep Dive Insight</Text>
+              <Text style={styles.aiInsightText}>
+                The human brain has more sensory cortex dedicated to vision than any other sense. Altering physical cues is the highest-leverage friction reducer.
+              </Text>
+            </View>
+          </View>
         )}
       </TouchableOpacity>
 
-      {/* Bottom Actions */}
-      {!flipped ? (
-        <TouchableOpacity style={styles.showAnswerButton} onPress={() => setFlipped(true)}>
-          <Text style={styles.showAnswerText}>Reveal Answer</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.responseGrid}>
-          <TouchableOpacity
-            style={[styles.responseButton, { backgroundColor: colors.error }]}
-            onPress={() => handleResponse('again')}
-            disabled={submitting}
-          >
-            <Text style={styles.responseText}>Again</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.responseButton, { backgroundColor: colors.success }]}
-            onPress={() => handleResponse('got_it')}
-            disabled={submitting}
-          >
-            <Text style={styles.responseText}>Got it</Text>
-          </TouchableOpacity>
+      {/* SM-2 Spaced Repetition Rating Action Bar */}
+      {flipped ? (
+        <View style={styles.ratingSection}>
+          <Text style={styles.ratingTitle}>Rate Recall Difficulty (SM-2 Algorithm)</Text>
+          <View style={styles.sm2Grid}>
+            
+            <TouchableOpacity
+              style={[styles.sm2Button, styles.sm2Again]}
+              onPress={() => handleResponse('again')}
+              disabled={submitting}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sm2Icon}>🔴</Text>
+              <Text style={styles.sm2Label}>Again</Text>
+              <Text style={styles.sm2Sub}>&lt; 1d</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sm2Button, styles.sm2Hard]}
+              onPress={() => handleResponse('hard')}
+              disabled={submitting}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sm2Icon}>🟡</Text>
+              <Text style={styles.sm2Label}>Hard</Text>
+              <Text style={styles.sm2Sub}>3d</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sm2Button, styles.sm2Good]}
+              onPress={() => handleResponse('good')}
+              disabled={submitting}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sm2Icon}>🟢</Text>
+              <Text style={styles.sm2Label}>Good</Text>
+              <Text style={styles.sm2Sub}>6d</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sm2Button, styles.sm2Easy]}
+              onPress={() => handleResponse('easy')}
+              disabled={submitting}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sm2Icon}>🟣</Text>
+              <Text style={styles.sm2Label}>Easy</Text>
+              <Text style={styles.sm2Sub}>12d</Text>
+            </TouchableOpacity>
+
+          </View>
         </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.revealButton}
+          onPress={() => setFlipped(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.revealButtonText}>View Answer & Rate Recall ➔</Text>
+        </TouchableOpacity>
       )}
-    </View>
+
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.xl,
+    backgroundColor: '#0B1326', // Nocturne Luminary Dark Canvas
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
-    backgroundColor: colors.background,
+    padding: 24,
+    backgroundColor: '#0B1326',
   },
   loadingText: {
-    color: colors.subtext,
-    marginTop: spacing.sm,
-    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 12,
+    fontSize: 14,
   },
-  progress: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.subtext,
+  trophyContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: '#171F33',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  trophyEmoji: {
+    fontSize: 40,
+  },
+  doneTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#DAE2FD',
+    marginBottom: 6,
+  },
+  doneSubtitle: {
+    color: '#94A3B8',
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 24,
   },
-  progressBarBg: {
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    marginBottom: spacing.xl,
+  primaryButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  topSessionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#171F33',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: {
+    color: '#DAE2FD',
+    fontSize: 18,
+  },
+  sessionTimerBadge: {
+    backgroundColor: '#171F33',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+  },
+  timerText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  streakBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  streakText: {
+    color: '#F59E0B',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DAE2FD',
+  },
+  progressPercentText: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
+    marginBottom: 16,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: '#4F46E5',
+    borderRadius: 3,
+  },
+  bookBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#171F33',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+    gap: 8,
+  },
+  bookBadgeIcon: {
+    fontSize: 14,
+  },
+  bookBadgeText: {
+    color: '#DAE2FD',
+    fontSize: 12,
+    fontWeight: '600',
   },
   flashcard: {
-    height: 300,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    ...shadows.card,
-  },
-  flashcardNormal: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: '#171F33',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+    minHeight: 280,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
   },
   flashcardFlipped: {
-    backgroundColor: colors.successBg,
-    borderColor: '#CDEFD6',
+    borderColor: 'rgba(124, 58, 237, 0.4)',
+    backgroundColor: '#1E1B4B',
   },
-  flashcardLabel: {
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  categoryTag: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  categoryTagText: {
+    color: '#C4B5FD',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cardStateLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+  },
+  frontContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  frontQuestion: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    lineHeight: 26,
+    marginBottom: 14,
+  },
+  excerptBox: {
+    backgroundColor: '#0B1326',
+    borderRadius: 12,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#C4B5FD',
+    marginBottom: 16,
+  },
+  excerptText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  flipPrompt: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  flipPromptText: {
+    color: '#C4B5FD',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  backContent: {
+    flex: 1,
+  },
+  answerHeadline: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#10B981',
+    marginBottom: 12,
+  },
+  takeawayList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  takeawayItem: {
+    color: '#DAE2FD',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  aiInsightBox: {
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+  },
+  aiInsightTitle: {
+    color: '#C4B5FD',
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    position: 'absolute',
-    top: spacing.md,
+    marginBottom: 4,
   },
-  flashcardLabelNormal: {
-    color: colors.subtext,
+  aiInsightText: {
+    color: '#DAE2FD',
+    fontSize: 11,
+    lineHeight: 16,
   },
-  flashcardLabelFlipped: {
-    color: colors.success,
+  ratingSection: {
+    marginTop: 4,
   },
-  flashcardText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
+  ratingTitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 26,
+    marginBottom: 12,
   },
-  tapTip: {
-    fontSize: 10,
-    color: colors.subtext,
-    position: 'absolute',
-    bottom: spacing.md,
-    fontStyle: 'italic',
-  },
-  showAnswerButton: {
-    marginTop: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    ...shadows.card,
-  },
-  showAnswerText: {
-    fontWeight: '600',
-    color: colors.text,
-    fontSize: 14,
-  },
-  responseGrid: {
+  sm2Grid: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.xl,
+    gap: 10,
   },
-  responseButton: {
+  sm2Button: {
     flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    ...shadows.primary,
-  },
-  responseText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  trophyEmoji: {
-    fontSize: 56,
-    marginBottom: spacing.md,
-  },
-  doneTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  doneSubtitle: {
-    color: colors.subtext,
-    fontSize: 13,
-    marginBottom: spacing.xl,
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.xl2,
+    borderRadius: 16,
     paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  sm2Again: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  sm2Hard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  sm2Good: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  sm2Easy: {
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    borderColor: 'rgba(196, 181, 253, 0.3)',
+  },
+  sm2Icon: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  sm2Label: {
+    color: '#DAE2FD',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sm2Sub: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 1,
+  },
+  revealButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 16,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  revealButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 14,
   },
 });
+

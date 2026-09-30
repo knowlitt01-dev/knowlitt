@@ -25,8 +25,8 @@ app.add_middleware(
     CORSMiddleware,
     # Parse the comma-separated env var into a list
     allow_origins=[o.strip() for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()],
-    # Also permit any LAN IP (192.168.x.x or 10.x.x.x) so Expo on a real device works
-    allow_origin_regex=r"https?://(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?",
+    # Permit any host / IP for Expo / Mobile / Web clients
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
