@@ -64,6 +64,14 @@ class Book(Base):
     error_code: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
 
+    # Genre classification (set during upload via LLM)
+    # genre: "fiction" | "non-fiction" | None (None = not yet classified)
+    # sub_genre: e.g. "thriller", "self-help", "biography", "science", etc.
+    # content_mode: "companion" (fiction) | "extraction" (non-fiction) | None
+    genre: Mapped[str | None] = mapped_column(String, nullable=True)
+    sub_genre: Mapped[str | None] = mapped_column(String, nullable=True)
+    content_mode: Mapped[str | None] = mapped_column(String, nullable=True)
+
     owner: Mapped["User"] = relationship(back_populates="books")
     insights: Mapped[list["Insight"]] = relationship(back_populates="book", cascade="all, delete-orphan")
     flashcards: Mapped[list["Flashcard"]] = relationship(back_populates="book", cascade="all, delete-orphan")
@@ -75,8 +83,15 @@ class Insight(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
     book_id: Mapped[str] = mapped_column(String, ForeignKey("books.id"))
     text: Mapped[str] = mapped_column(Text)
-    type: Mapped[str] = mapped_column(String, default="concept")  # concept|example|quote|framework
+    # extraction types: concept|example|quote|framework
+    # companion types:  recap|character_reminder|hook|reflection
+    type: Mapped[str] = mapped_column(String, default="concept")
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+    # Which pipeline produced this row: "extraction" | "companion"
+    pipeline: Mapped[str] = mapped_column(String, default="extraction")
+    # For companion pipeline: which reading segment (0-based) this belongs to.
+    # Daily delivery pulls segments in order, never skipping ahead.
+    section_index: Mapped[int] = mapped_column(Integer, default=0)
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
 

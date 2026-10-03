@@ -11,7 +11,14 @@ import { useAuth } from '@/components/AuthProvider'
 import { api, ApiError } from '@/lib/api'
 import AppShell from '@/components/AppShell'
 
-interface Book { id: string; title: string; status: string }
+interface Book {
+  id: string
+  title: string
+  status: string
+  genre?: string | null
+  sub_genre?: string | null
+  content_mode?: 'extraction' | 'companion' | null
+}
 
 export default function BooksPage() {
   const { user, loading: authLoading } = useAuth()
@@ -105,7 +112,7 @@ export default function BooksPage() {
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity=".2" />
                   <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
-                <p className="text-primary font-semibold">Uploading…</p>
+                <p className="text-primary font-semibold">Uploading & classifying book genre…</p>
               </>
             ) : (
               <>
@@ -114,7 +121,7 @@ export default function BooksPage() {
                 </div>
                 <div>
                   <p className="font-bold text-app-text text-base">Drag & drop your PDF here</p>
-                  <p className="text-app-subtext text-sm mt-1">or click to browse · up to 40 MB</p>
+                  <p className="text-app-subtext text-sm mt-1">Automatic AI classification into Companion or Extraction mode</p>
                 </div>
               </>
             )}
@@ -174,13 +181,21 @@ export default function BooksPage() {
               {books.map((book, i) => {
                 const progress = (i * 17 + 10) % 90 + 5 // mock
                 const daysLeft = Math.max(1, 21 - Math.floor(progress / 5))
+                const isCompanion = book.content_mode === 'companion'
                 return (
                   <div key={book.id} className="card flex items-center gap-4 group">
-                    <div className="w-10 h-10 rounded-12 bg-primary-50 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="w-5 h-5 text-primary" />
+                    <div className={`w-10 h-10 rounded-12 flex items-center justify-center flex-shrink-0 ${isCompanion ? 'bg-amber-50 text-amber-600' : 'bg-primary-50 text-primary'}`}>
+                      <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-app-text text-sm truncate">{book.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-app-text text-sm truncate">{book.title}</p>
+                        {book.content_mode && (
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${isCompanion ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
+                            {isCompanion ? '📖 Companion' : '🧠 Extraction'}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-1.5">
                         <div className="flex-1 progress-bar">
                           <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -193,6 +208,9 @@ export default function BooksPage() {
                         <span className={`badge ${book.status === 'processing' ? 'badge-accent' : 'badge-success'}`}>
                           {book.status === 'processing' ? '⏳ Processing' : '✓ Ready'}
                         </span>
+                        {book.genre && (
+                          <span className="text-[11px] text-app-subtext capitalize">{book.genre}{book.sub_genre ? ` (${book.sub_genre})` : ''}</span>
+                        )}
                         <span className="text-[11px] text-app-subtext">{daysLeft} days left</span>
                       </div>
                     </div>

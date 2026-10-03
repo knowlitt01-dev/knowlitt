@@ -11,7 +11,14 @@ import { useAuth } from '@/components/AuthProvider'
 import AppShell from '@/components/AppShell'
 import { api } from '@/lib/api'
 
-interface Book { id: string; title: string; status: string }
+interface Book {
+  id: string
+  title: string
+  status: string
+  genre?: string | null
+  sub_genre?: string | null
+  content_mode?: 'extraction' | 'companion' | null
+}
 
 const QUICK_ACTIONS = [
   { label: 'Upload Book',     icon: Upload,    href: '/books',         color: 'bg-primary-50 text-primary' },
@@ -56,6 +63,12 @@ export default function HomePage() {
 
   const firstName = user.email?.split('@')[0] ?? 'there'
   const activeBook = books.find(b => b.status === 'ready' || b.status === 'processing') ?? books[0]
+  const isCompanionMode = activeBook?.content_mode === 'companion'
+
+  const sectionTitleText = isCompanionMode ? "Today's Reading Assignment" : "Today's Key Points"
+  const taglineCopy = isCompanionMode
+    ? "Never lose your place — you do the reading, we handle the pacing."
+    : "Absorb every idea in this book, a little each day."
 
   return (
     <AppShell>
@@ -75,6 +88,13 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── App Tagline Banner ── */}
+        <div className="rounded-16 bg-primary-50/60 border border-primary-100 p-3.5 text-center">
+          <p className="text-sm font-medium italic text-primary-900">
+            &ldquo;{taglineCopy}&rdquo;
+          </p>
+        </div>
+
         {/* ── Due-cards CTA ── */}
         {dueCount > 0 && (
           <Link
@@ -85,7 +105,9 @@ export default function HomePage() {
               <Layers className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-base">Review {dueCount} flashcard{dueCount !== 1 ? 's' : ''}</p>
+              <p className="text-white font-bold text-base">
+                {isCompanionMode ? `Answer ${dueCount} reflection question${dueCount !== 1 ? 's' : ''}` : `Review ${dueCount} flashcard${dueCount !== 1 ? 's' : ''}`}
+              </p>
               <p className="text-white/70 text-xs mt-0.5">Stay on top of your learning streak</p>
             </div>
             <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-0.5 transition-transform" />
@@ -96,7 +118,12 @@ export default function HomePage() {
         {activeBook ? (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="section-title mb-0">Today&apos;s Reading</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="section-title mb-0">{sectionTitleText}</h2>
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${isCompanionMode ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
+                  {isCompanionMode ? '📖 Companion' : '🧠 Extraction'}
+                </span>
+              </div>
               <Link href="/books" className="text-xs text-primary font-medium hover:text-primary-700 transition-colors">
                 All books
               </Link>
@@ -111,16 +138,22 @@ export default function HomePage() {
                     <BookOpen className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-white/70 text-xs font-medium">READING NOW</p>
+                    <p className="text-white/70 text-xs font-medium uppercase tracking-wider">
+                      {isCompanionMode ? 'ACTIVE READING COMPANION' : 'READING NOW'}
+                    </p>
                     <p className="font-bold text-white text-base leading-tight line-clamp-1">{activeBook.title}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-white/70 text-xs mb-0.5">Chapter 3 · Est. 12 min</p>
+                    <p className="text-white/70 text-xs mb-0.5">
+                      {isCompanionMode ? 'Ch. 4-5 · Est. 18 min assignment' : 'Chapter 3 · Est. 12 min summary'}
+                    </p>
                     <div className="flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 text-accent fill-accent" />
-                      <span className="text-white text-xs font-semibold">+24 pts today</span>
+                      <span className="text-white text-xs font-semibold">
+                        {isCompanionMode ? 'Spoiler-Free Pacing' : '+24 pts today'}
+                      </span>
                     </div>
                   </div>
                   <Link
@@ -128,7 +161,7 @@ export default function HomePage() {
                     className="flex items-center gap-2 bg-white text-primary font-bold text-sm rounded-12 px-4 py-2 hover:bg-primary-50 transition-colors"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    Start
+                    {isCompanionMode ? 'Read' : 'Start'}
                   </Link>
                 </div>
               </div>

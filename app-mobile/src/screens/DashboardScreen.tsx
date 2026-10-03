@@ -11,6 +11,9 @@ interface Book {
   id: string;
   title: string;
   status: string;
+  genre?: string | null;
+  sub_genre?: string | null;
+  content_mode?: 'extraction' | 'companion' | null;
 }
 
 export default function DashboardScreen({ navigation }: any) {
@@ -46,6 +49,18 @@ export default function DashboardScreen({ navigation }: any) {
 
   const firstName = user?.email?.split('@')[0] || 'Alex';
   const activeBook = books.find(b => b.status === 'ready' || b.status === 'processing') || books[0];
+  const isCompanionMode = activeBook?.content_mode === 'companion';
+
+  const sectionHeading = isCompanionMode ? "Today's Reading Assignment" : "Today's Key Points";
+  const taglineCopy = isCompanionMode
+    ? "Never lose your place — you do the reading, we handle the pacing."
+    : "Absorb every idea in this book, a little each day.";
+  const deckTitleCopy = isCompanionMode
+    ? "Today: Read Ch. 4-5 (18 min)"
+    : "Chapter 4: The 1st Law (Make it Obvious)";
+  const deckDescCopy = isCompanionMode
+    ? "Last time: Emma realized Mr. Knightley's hidden motives. Context ready for upcoming chapters."
+    : "Review key cues, implementation intentions, and habit stacking anchors.";
 
   return (
     <ScrollView
@@ -78,6 +93,11 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.bellDot} />
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* App Tagline Banner */}
+      <View style={styles.taglineBanner}>
+        <Text style={styles.taglineText}>"{taglineCopy}"</Text>
       </View>
 
       {/* Overview Quick Stats Card */}
@@ -120,7 +140,7 @@ export default function DashboardScreen({ navigation }: any) {
 
         <TouchableOpacity style={styles.toolPill} onPress={() => navigation.navigate('Review')}>
           <Text style={styles.toolIcon}>🗂️</Text>
-          <Text style={styles.toolText}>Flashcards</Text>
+          <Text style={styles.toolText}>{isCompanionMode ? 'Reflections' : 'Flashcards'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.toolPill} onPress={() => navigation.navigate('Discover')}>
@@ -129,12 +149,14 @@ export default function DashboardScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Daily Flashcard Review Deck Section */}
+      {/* Daily Flashcard / Reading Assignment Deck Section */}
       <View style={styles.sectionHeaderRow}>
         <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Daily Flashcard Review</Text>
-          <View style={styles.badgePill}>
-            <Text style={styles.badgePillText}>Spaced Repetition</Text>
+          <Text style={styles.sectionTitle}>{sectionHeading}</Text>
+          <View style={[styles.badgePill, isCompanionMode && { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)' }]}>
+            <Text style={[styles.badgePillText, isCompanionMode && { color: '#F59E0B' }]}>
+              {isCompanionMode ? '📖 Companion' : '🧠 Spaced Repetition'}
+            </Text>
           </View>
         </View>
       </View>
@@ -146,26 +168,23 @@ export default function DashboardScreen({ navigation }: any) {
       >
         <View style={styles.deckTopRow}>
           <View style={styles.bookTag}>
-            <Text style={styles.bookTagIcon}>📘</Text>
-            <Text style={styles.bookTagText}>Atomic Habits</Text>
+            <Text style={styles.bookTagIcon}>{isCompanionMode ? '📚' : '📘'}</Text>
+            <Text style={styles.bookTagText}>{activeBook?.title || 'Atomic Habits'}</Text>
           </View>
-          <Text style={styles.dueBadge}>{dueCount > 0 ? `${dueCount} due` : '12 due today'}</Text>
+          <Text style={styles.dueBadge}>{dueCount > 0 ? `${dueCount} due` : isCompanionMode ? 'Session Ready' : '12 due today'}</Text>
         </View>
 
-        <Text style={styles.deckChapterTitle}>Chapter 4: The 1st Law (Make it Obvious)</Text>
-        <Text style={styles.deckChapterDesc}>
-          Review key cues, implementation intentions, and habit stacking anchors.
-        </Text>
+        <Text style={styles.deckChapterTitle}>{deckTitleCopy}</Text>
+        <Text style={styles.deckChapterDesc}>{deckDescCopy}</Text>
 
         <View style={styles.deckBottomRow}>
           <View style={styles.retentionPill}>
-            <Text style={styles.retentionIcon}>⚡</Text>
-            <Text style={styles.retentionText}>High Retention Mode</Text>
+            <Text style={styles.retentionIcon}>{isCompanionMode ? '📖' : '⚡'}</Text>
+            <Text style={styles.retentionText}>{isCompanionMode ? 'Spoiler-Free Pacing' : 'High Retention Mode'}</Text>
           </View>
 
           <View style={styles.reviewBtn}>
-            <Text style={styles.reviewBtnText}>Review Now</Text>
-            <Text style={styles.reviewBtnArrow}>➔</Text>
+            <Text style={styles.reviewBtnText}>{isCompanionMode ? 'Start Reading ➔' : 'Review Now ➔'}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -245,8 +264,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
+  taglineBanner: {
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.2)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 18,
+  },
+  taglineText: {
+    color: '#C4B5FD',
+    fontSize: 13,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',

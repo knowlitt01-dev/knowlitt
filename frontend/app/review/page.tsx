@@ -8,7 +8,14 @@ import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/lib/api'
 import AppShell from '@/components/AppShell'
 
-interface DueCard { card_id: string; front: string; back: string }
+interface DueCard {
+  card_id: string
+  front: string
+  back: string
+  card_type?: string
+  content_mode?: 'extraction' | 'companion'
+  book_title?: string
+}
 
 export default function ReviewPage() {
   const [cards, setCards]       = useState<DueCard[]>([])
@@ -65,8 +72,8 @@ export default function ReviewPage() {
           </h2>
           <p className="text-app-subtext text-sm mb-6">
             {done
-              ? `You reviewed ${cards.length} flashcard${cards.length !== 1 ? 's' : ''}. Great work!`
-              : 'No flashcards due right now. Come back later!'}
+              ? `You reviewed ${cards.length} card${cards.length !== 1 ? 's' : ''}. Great work!`
+              : 'No cards due right now. Come back later!'}
           </p>
           <Link href="/" className="btn-primary inline-flex">Back to Home</Link>
         </div>
@@ -75,6 +82,7 @@ export default function ReviewPage() {
   )
 
   const card = cards[current]
+  const isCompanion = card.content_mode === 'companion' || card.card_type === 'reflection'
 
   return (
     <AppShell>
@@ -86,10 +94,12 @@ export default function ReviewPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="font-bold text-app-text">Flashcards</h1>
-            <p className="text-xs text-app-subtext mt-0.5">Card {current + 1} of {cards.length}</p>
+            <h1 className="font-bold text-app-text">{isCompanion ? 'Reflection Questions' : 'Flashcards'}</h1>
+            <p className="text-xs text-app-subtext mt-0.5">{card.book_title || `Card ${current + 1} of ${cards.length}`}</p>
           </div>
-          <span className="badge badge-primary">{Math.round((current / cards.length) * 100)}%</span>
+          <span className={`badge ${isCompanion ? 'bg-amber-50 text-amber-700 border-amber-200' : 'badge-primary'}`}>
+            {isCompanion ? '💬 Reflection' : `${Math.round((current / cards.length) * 100)}%`}
+          </span>
         </div>
 
         {/* Progress bar */}
@@ -112,19 +122,21 @@ export default function ReviewPage() {
               rounded-20 p-8 min-h-[260px] flex flex-col items-center justify-center text-center
               transition-all duration-500 shadow-card
               ${flipped
-                ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100'
+                ? (isCompanion ? 'bg-amber-50/70 border border-amber-200' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100')
                 : 'bg-white border border-app-border'
               }
             `}
           >
-            <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${flipped ? 'text-green-600' : 'text-app-subtext'}`}>
-              {flipped ? '✓ Answer' : 'Question'}
+            <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${flipped ? (isCompanion ? 'text-amber-700' : 'text-green-600') : 'text-app-subtext'}`}>
+              {flipped ? (isCompanion ? '💬 Reflection Guide' : '✓ Answer') : (isCompanion ? '💬 Reflection Prompt' : 'Question')}
             </p>
             <p className="text-xl font-semibold text-app-text leading-relaxed">
               {flipped ? card.back : card.front}
             </p>
             {!flipped && (
-              <p className="text-xs text-app-subtext mt-6 animate-pulse">Tap to reveal answer</p>
+              <p className="text-xs text-app-subtext mt-6 animate-pulse">
+                {isCompanion ? 'Tap to reveal reflection thoughts' : 'Tap to reveal answer'}
+              </p>
             )}
           </div>
         </div>

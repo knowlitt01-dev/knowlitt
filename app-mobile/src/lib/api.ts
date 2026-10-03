@@ -1,13 +1,36 @@
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // Same backend, same contract as the web app — this file is a straight port
 // of frontend/lib/api.ts with localStorage swapped for SecureStore (web
 // falls back to localStorage since SecureStore isn't available there).
-let API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+function getApiUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  // Try to derive host IP when running via Expo CLI on physical device or simulator
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest?.debuggerHost;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:8000`;
+    }
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8000';
+  }
+  return 'http://localhost:8000';
+}
 
-if (Platform.OS === 'android' && (API_URL.includes('localhost') || API_URL.includes('127.0.0.1'))) {
-  API_URL = API_URL.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
+export const API_URL = getApiUrl();
+
+
+// Genre classification returned by the backend after upload
+export interface BookGenre {
+  genre: 'fiction' | 'non-fiction' | null;
+  sub_genre: string | null;
+  content_mode: 'companion' | 'extraction' | null;
 }
 
 const TOKEN_KEY = 'bt_token';

@@ -9,7 +9,12 @@ import { api, ApiError } from '../lib/api';
 interface Book {
   id: string;
   title: string;
+  author: string | null;
   status: string;
+  genre: string | null;
+  sub_genre: string | null;
+  content_mode: 'extraction' | 'companion' | null;
+  error_message: string | null;
 }
 
 export default function BooksScreen({ navigation }: any) {
@@ -147,98 +152,77 @@ export default function BooksScreen({ navigation }: any) {
       <Text style={styles.sectionTitle}>All Books</Text>
       {loading ? (
         <ActivityIndicator color="#C4B5FD" style={{ marginTop: 20 }} />
+      ) : books.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyEmoji}>📚</Text>
+          <Text style={styles.emptyTitle}>No books yet</Text>
+          <Text style={styles.emptyDesc}>Upload a PDF to get started with AI-powered reading.</Text>
+        </View>
       ) : (
         <View style={styles.booksList}>
-          {/* Default Rich Cards */}
-          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
-            <View style={[styles.bookCover, { backgroundColor: '#1E1B4B' }]}>
-              <Text style={styles.bookEmoji}>🧠</Text>
-            </View>
-            <View style={styles.bookInfo}>
-              <View style={styles.bookHeaderRow}>
-                <Text style={styles.bookTitle} numberOfLines={1}>Atomic Habits</Text>
-                <View style={styles.retentionBadge}>
-                  <Text style={styles.retentionText}>★ 92%</Text>
+          {books.map((book) => {
+            const isCompanion = book.content_mode === 'companion';
+            const modeEmoji  = isCompanion ? '📖' : '🧠';
+            const modeLabel  = isCompanion ? 'Companion' : 'Extraction';
+            const modeColor  = isCompanion ? '#F59E0B' : '#6366F1';
+            const modeBg     = isCompanion ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)';
+            const modeBorder = isCompanion ? 'rgba(245,158,11,0.3)' : 'rgba(99,102,241,0.3)';
+            const coverEmoji = isCompanion ? '📚' : '🧠';
+            const actionText = isCompanion ? 'Read ➔' : 'Review ➔';
+            const subCopy    = isCompanion
+              ? 'Reading companion active'
+              : book.status === 'ready' ? 'Cards ready' : book.status;
+            const isFailed = book.status === 'failed';
+
+            return (
+              <TouchableOpacity
+                key={book.id}
+                style={[styles.bookCard, isFailed && styles.bookCardFailed]}
+                onPress={() => navigation.navigate('Books')}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.bookCover, { backgroundColor: isCompanion ? '#2D1B5E' : '#1E1B4B' }]}>
+                  <Text style={styles.bookEmoji}>{coverEmoji}</Text>
                 </View>
-              </View>
+                <View style={styles.bookInfo}>
+                  <View style={styles.bookHeaderRow}>
+                    <Text style={styles.bookTitle} numberOfLines={1}>{book.title}</Text>
+                    {/* Mode badge */}
+                    {book.content_mode && (
+                      <View style={[styles.modeBadge, { backgroundColor: modeBg, borderColor: modeBorder }]}>
+                        <Text style={[styles.modeBadgeText, { color: modeColor }]}>
+                          {modeEmoji} {modeLabel}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
-              <Text style={styles.bookAuthor}>James Clear</Text>
+                  {book.author ? <Text style={styles.bookAuthor}>{book.author}</Text> : null}
 
-              <View style={styles.progressRow}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '68%' }]} />
+                  {!isFailed && (
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: book.status === 'ready' ? '100%' : '30%', backgroundColor: isCompanion ? '#F59E0B' : '#4F46E5' }]} />
+                      </View>
+                      <Text style={styles.progressText}>{book.status === 'ready' ? '100%' : '...'}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.metaRow}>
+                    {isFailed
+                      ? <Text style={styles.errorChipText} numberOfLines={1}>{book.error_message || 'Processing failed'}</Text>
+                      : <Text style={styles.chapterText}>{subCopy}</Text>
+                    }
+                    {!isFailed && book.status === 'ready' && (
+                      <TouchableOpacity style={styles.actionPill}>
+                        <Text style={styles.actionPillText}>{actionText}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-                <Text style={styles.progressText}>68%</Text>
-              </View>
-
-              <View style={styles.metaRow}>
-                <Text style={styles.chapterText}>Ch 4 of 10 · 12 cards due</Text>
-                <TouchableOpacity style={styles.actionPill}>
-                  <Text style={styles.actionPillText}>Review ➔</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
-            <View style={[styles.bookCover, { backgroundColor: '#172554' }]}>
-              <Text style={styles.bookEmoji}>💡</Text>
-            </View>
-            <View style={styles.bookInfo}>
-              <View style={styles.bookHeaderRow}>
-                <Text style={styles.bookTitle} numberOfLines={1}>Deep Work</Text>
-                <View style={styles.retentionBadge}>
-                  <Text style={styles.retentionText}>★ 85%</Text>
-                </View>
-              </View>
-
-              <Text style={styles.bookAuthor}>Cal Newport</Text>
-
-              <View style={styles.progressRow}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '42%' }]} />
-                </View>
-                <Text style={styles.progressText}>42%</Text>
-              </View>
-
-              <View style={styles.metaRow}>
-                <Text style={styles.chapterText}>Ch 2 of 7 · Summary Ready</Text>
-                <TouchableOpacity style={styles.actionPill}>
-                  <Text style={styles.actionPillText}>Study ➔</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.bookCard} onPress={() => navigation.navigate('Books')} activeOpacity={0.85}>
-            <View style={[styles.bookCover, { backgroundColor: '#31124B' }]}>
-              <Text style={styles.bookEmoji}>📊</Text>
-            </View>
-            <View style={styles.bookInfo}>
-              <View style={styles.bookHeaderRow}>
-                <Text style={styles.bookTitle} numberOfLines={1}>Thinking, Fast & Slow</Text>
-                <View style={styles.retentionBadge}>
-                  <Text style={styles.retentionText}>★ 74%</Text>
-                </View>
-              </View>
-
-              <Text style={styles.bookAuthor}>Daniel Kahneman</Text>
-
-              <View style={styles.progressRow}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: '15%' }]} />
-                </View>
-                <Text style={styles.progressText}>15%</Text>
-              </View>
-
-              <View style={styles.metaRow}>
-                <Text style={styles.chapterText}>Ch 1 of 12 · 18 cards</Text>
-                <TouchableOpacity style={styles.actionPill}>
-                  <Text style={styles.actionPillText}>Open ➔</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 

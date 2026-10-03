@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Alert
 } from 'react-native';
-import { api } from '../lib/api';
+import { api, BookGenre } from '../lib/api';
 import { colors, spacing, radius, typography, shadows } from '../lib/theme';
 
 export default function BookSetupScreen({ route, navigation }: any) {
@@ -11,6 +11,7 @@ export default function BookSetupScreen({ route, navigation }: any) {
 
   const [bookTitle, setBookTitle] = useState('Book Study Plan');
   const [loading, setLoading] = useState(true);
+  const [genre, setGenre] = useState<BookGenre | null>(null);
 
   // Form state
   const [days, setDays] = useState<number>(14);
@@ -31,7 +32,16 @@ export default function BookSetupScreen({ route, navigation }: any) {
       try {
         const books = await api.listBooks();
         const found = books.find((b: any) => b.id === bookId);
-        if (found) setBookTitle(found.title);
+        if (found) {
+          setBookTitle(found.title);
+          if (found.genre) {
+            setGenre({
+              genre: found.genre,
+              sub_genre: found.sub_genre,
+              content_mode: found.content_mode,
+            });
+          }
+        }
       } catch (err) {
         console.warn(err);
       } finally {
@@ -78,7 +88,46 @@ export default function BookSetupScreen({ route, navigation }: any) {
       <Text style={styles.title}>Plan Setup</Text>
       <Text style={styles.bookTitle} numberOfLines={1}>{bookTitle}</Text>
 
-      {/* Days to finish */}
+      {/* Genre Badge */}
+      {genre && genre.genre ? (
+        <View style={[
+          styles.genreBadgeRow,
+          genre.genre === 'fiction' ? styles.genreBadgeRowFiction : styles.genreBadgeRowNonFiction
+        ]}>
+          <View style={styles.genreBadgeLeft}>
+            <Text style={[
+              styles.genreBadgeIcon
+            ]}>{genre.genre === 'fiction' ? '📚' : '🔬'}</Text>
+            <View>
+              <View style={styles.genreBadgeLabelRow}>
+                <Text style={[
+                  styles.genreBadgeGenre,
+                  genre.genre === 'fiction' ? styles.genreTextFiction : styles.genreTextNonFiction
+                ]}>
+                  {genre.genre === 'fiction' ? 'Fiction' : 'Non-fiction'}
+                </Text>
+                {genre.sub_genre ? (
+                  <Text style={styles.genreSubLabel}> · {genre.sub_genre}</Text>
+                ) : null}
+              </View>
+              <Text style={styles.genreModeDesc}>
+                {genre.content_mode === 'companion'
+                  ? 'Companion mode — story context, themes & character analysis'
+                  : 'Extraction mode — key facts, concepts & flashcards'}
+              </Text>
+            </View>
+          </View>
+          <View style={[
+            styles.genreModeBadge,
+            genre.content_mode === 'companion' ? styles.genreModeBadgeFiction : styles.genreModeBadgeNonFiction
+          ]}>
+            <Text style={styles.genreModeBadgeText}>
+              {genre.content_mode === 'companion' ? 'Companion' : 'Extraction'}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>📅 How many days to finish?</Text>
         <View style={styles.chipRow}>
@@ -237,8 +286,87 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.subtext,
     fontWeight: '500',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
+
+  // ── Genre badge ──────────────────────────────────────────────
+  genreBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md2,
+    paddingVertical: 12,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+  },
+  genreBadgeRowFiction: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FCD34D',
+  },
+  genreBadgeRowNonFiction: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#A5B4FC',
+  },
+  genreBadgeLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 10,
+  },
+  genreBadgeIcon: {
+    fontSize: 22,
+    marginTop: 1,
+  },
+  genreBadgeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 2,
+  },
+  genreBadgeGenre: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  genreTextFiction: {
+    color: '#92400E',
+  },
+  genreTextNonFiction: {
+    color: '#3730A3',
+  },
+  genreSubLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  genreModeDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 16,
+    flexShrink: 1,
+  },
+  genreModeBadge: {
+    borderRadius: radius.xl,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginLeft: spacing.sm,
+    alignSelf: 'center',
+  },
+  genreModeBadgeFiction: {
+    backgroundColor: '#F59E0B',
+  },
+  genreModeBadgeNonFiction: {
+    backgroundColor: '#6366F1',
+  },
+  genreModeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.3,
+  },
+
+
   section: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,

@@ -6,6 +6,9 @@ interface DueCard {
   card_id: string;
   front: string;
   back: string;
+  card_type?: string;
+  content_mode?: 'extraction' | 'companion';
+  book_title?: string;
 }
 
 export default function ReviewScreen({ navigation }: any) {
@@ -76,6 +79,12 @@ export default function ReviewScreen({ navigation }: any) {
   const total = cards.length || 12;
   const progressPercent = ((current + 1) / total) * 100;
 
+  const isCompanion = card.content_mode === 'companion' || card.card_type === 'reflection';
+  const categoryLabel = isCompanion ? '💬 Reflection Prompt' : '✦ Concept Ingestion';
+  const stateLabel = flipped
+    ? (isCompanion ? 'REFLECTION' : 'ANSWER')
+    : (isCompanion ? 'PROMPT' : 'QUESTION');
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       
@@ -109,8 +118,8 @@ export default function ReviewScreen({ navigation }: any) {
 
       {/* Context Badge */}
       <View style={styles.bookBadge}>
-        <Text style={styles.bookBadgeIcon}>📘</Text>
-        <Text style={styles.bookBadgeText}>Atomic Habits — Chapter 4: Make It Obvious</Text>
+        <Text style={styles.bookBadgeIcon}>{isCompanion ? '📖' : '📘'}</Text>
+        <Text style={styles.bookBadgeText}>{card.book_title || 'Active Reading Session'}</Text>
       </View>
 
       {/* Interactive 3D Card Container */}
@@ -121,44 +130,38 @@ export default function ReviewScreen({ navigation }: any) {
         disabled={submitting}
       >
         <View style={styles.cardHeader}>
-          <View style={styles.categoryTag}>
-            <Text style={styles.categoryTagText}>✦ Concept Ingestion</Text>
+          <View style={[styles.categoryTag, isCompanion && { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+            <Text style={[styles.categoryTagText, isCompanion && { color: '#F59E0B' }]}>{categoryLabel}</Text>
           </View>
-          <Text style={styles.cardStateLabel}>{flipped ? 'ANSWER' : 'QUESTION'}</Text>
+          <Text style={styles.cardStateLabel}>{stateLabel}</Text>
         </View>
 
         {!flipped ? (
           <View style={styles.frontContent}>
             <Text style={styles.frontQuestion}>
-              {card.front || 'What is the 1st Law of Behavior Change according to James Clear?'}
+              {card.front}
             </Text>
 
-            <View style={styles.excerptBox}>
-              <Text style={styles.excerptText}>
-                "Environment is the invisible hand that shapes human behavior. We are constantly responding to stimuli..."
-              </Text>
-            </View>
-
             <View style={styles.flipPrompt}>
-              <Text style={styles.flipPromptText}>Tap card to reveal answer 🔄</Text>
+              <Text style={styles.flipPromptText}>
+                {isCompanion ? 'Tap to reveal reflection insights 🔄' : 'Tap card to reveal answer 🔄'}
+              </Text>
             </View>
           </View>
         ) : (
           <View style={styles.backContent}>
             <Text style={styles.answerHeadline}>
-              {card.back || 'Make it Obvious'}
+              {card.back}
             </Text>
 
-            <View style={styles.takeawayList}>
-              <Text style={styles.takeawayItem}>• 1. Implementation Intentions ("I will [BEHAVIOR] at [TIME] in [LOCATION]")</Text>
-              <Text style={styles.takeawayItem}>• 2. Habit Stacking: Pair a new habit with an existing cue</Text>
-              <Text style={styles.takeawayItem}>• 3. Environment Design: Make positive cues visual and prominent</Text>
-            </View>
-
             <View style={styles.aiInsightBox}>
-              <Text style={styles.aiInsightTitle}>💡 AI Deep Dive Insight</Text>
+              <Text style={styles.aiInsightTitle}>
+                {isCompanion ? '📖 Character & Narrative Context' : '💡 AI Deep Dive Insight'}
+              </Text>
               <Text style={styles.aiInsightText}>
-                The human brain has more sensory cortex dedicated to vision than any other sense. Altering physical cues is the highest-leverage friction reducer.
+                {isCompanion
+                  ? 'Reflecting on character motives and thematic beats strengthens emotional connection to the story without revealing future plot points.'
+                  : 'Active recall and spaced repetition strengthen long-term memory traces in cortical neural networks.'}
               </Text>
             </View>
           </View>

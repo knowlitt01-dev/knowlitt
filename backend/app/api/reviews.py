@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_active_access
 from app.db.base import get_db
-from app.models.models import Flashcard, ReviewState, User
+from app.models.models import Book, Flashcard, ReviewState, User
 from app.services.sm2 import ReviewStateData, update_review_state
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
@@ -19,15 +19,25 @@ class ReviewRequest(BaseModel):
 @router.get("/due")
 def get_due_cards(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     rows = (
-        db.query(ReviewState, Flashcard)
+        db.query(ReviewState, Flashcard, Book)
         .join(Flashcard, ReviewState.flashcard_id == Flashcard.id)
+        .join(Book, Flashcard.book_id == Book.id)
         .filter(ReviewState.user_id == current_user.id, ReviewState.next_review_date <= date.today())
         .all()
     )
     return [
-        {"card_id": fc.id, "front": fc.front, "back": fc.back, "next_review_date": rs.next_review_date}
-        for rs, fc in rows
+        {
+            "card_id": fc.id,
+            "front": fc.front,
+            "back": fc.back,
+            "card_type": getattr(fc, "card_type", None),
+            "content_mode": getattr(bk, "content_mode", None),
+            "book_title": getattr(bk, "title", None),
+            "next_review_date": rs.next_review_date,
+        }
+        for rs, fc, bk in rows
     ]
+
 
 
 @router.post("/{card_id}")

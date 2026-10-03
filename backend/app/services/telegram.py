@@ -36,10 +36,29 @@ def send_message(chat_id: str, text: str) -> bool:
         return False
 
 
-def format_daily_message(insight_count: int, due_count: int) -> str:
-    return (
-        f"*Your BookTutor lesson is ready* 📚\n\n"
-        f"• {insight_count} new insight{'s' if insight_count != 1 else ''}\n"
-        f"• {due_count} card{'s' if due_count != 1 else ''} due for review\n\n"
-        f"Open the app to get started."
-    )
+def format_daily_message(
+    insight_count: int,
+    due_count: int,
+    content_mode: str = "extraction",
+    book_title: str | None = None,
+    section_title: str | None = None,
+    recap_teaser: str | None = None,
+) -> str:
+    if content_mode == "companion":
+        section_str = f"Today: read {section_title}" if section_title else "Today's reading assignment is ready"
+        book_str = f" for *{book_title}*" if book_title else ""
+        recap_str = f"\n*Last time:* {recap_teaser}" if recap_teaser else ""
+        return (
+            f"📖 *{section_str}*{book_str}\n"
+            f"{recap_str}\n\n"
+            f"• {due_count} reflection question{'s' if due_count != 1 else ''} ready\n\n"
+            f"_Never lose your place — you do the reading, we handle the pacing._"
+        )
+    else:
+        return (
+            f"🧠 *Today's key points are ready* 📚\n\n"
+            f"• {insight_count} new insight{'s' if insight_count != 1 else ''}\n"
+            f"• {due_count} card{'s' if due_count != 1 else ''} due for review\n\n"
+            f"Absorb every idea in this book, a little each day."
+        )
+

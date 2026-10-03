@@ -8,6 +8,8 @@ from app.core.config import settings
 from app.db.base import get_db
 from app.models.models import Book, Flashcard, Insight, ReviewState, User
 from app.services import file_storage
+from app.services.companion_pipeline import process_companion_book
+from app.services.genre_detection import detect_genre
 from app.services.ingestion import IngestionError, chunk_text, extract_text_layer, run_ocr
 from app.services.llm_pipeline import process_section
 
@@ -72,30 +74,65 @@ def _process_single_upload(file: UploadFile, db: Session, current_user: User) ->
         book.status = "processing"
         db.commit()
 
+        # --- Genre detection (single LLM call, non-blocking on failure) ---
+        text_sample = text[:4000]
+        genre_result = detect_genre(book.title, book.author, text_sample)
+        book.genre = genre_result["genre"]
+        book.sub_genre = genre_result["sub_genre"]
+        book.content_mode = genre_result["content_mode"]
+        db.commit()
+
         sections = chunk_text(text)
         if not sections:
             raise IngestionError("No usable text sections found in this file.", code="no_content_found")
 
-        order_index = 0
-        for section in sections:
-            result = process_section(section)
-            for insight in result["insights"]:
+        if book.content_mode == "companion":
+            # ── Fiction / Companion pipeline ────────────────────────────────
+            # Processes sections in reading order, accumulating story-so-far.
+            # No flashcards are generated for fiction books.
+            companion_insights = process_companion_book(
+                title=book.title,
+                author=book.author,
+                sections=sections,
+            )
+            for row in companion_insights:
                 db.add(Insight(
                     book_id=book.id,
-                    text=insight["text"],
-                    type=insight.get("type", "concept"),
-                    order_index=order_index,
+                    text=row["text"],
+                    type=row["type"],
+                    pipeline=row["pipeline"],
+                    section_index=row["section_index"],
+                    order_index=row["order_index"],
                 ))
-                order_index += 1
-            for card in result["flashcards"]:
-                flashcard = Flashcard(book_id=book.id, front=card["front"], back=card["back"])
-                db.add(flashcard)
-                db.flush()  # get flashcard.id before creating review_state
-                db.add(ReviewState(flashcard_id=flashcard.id, user_id=current_user.id))
+        else:
+            # ── Non-fiction / Extraction pipeline ──────────────────────────
+            # Original pipeline: chunk → LLM → insights + flashcards.
+            order_index = 0
+            for section in sections:
+                result = process_section(section)
+                for insight in result["insights"]:
+                    db.add(Insight(
+                        book_id=book.id,
+                        text=insight["text"],
+                        type=insight.get("type", "concept"),
+                        pipeline="extraction",
+                        section_index=0,   # extraction doesn't use section_index for scheduling
+                        order_index=order_index,
+                    ))
+                    order_index += 1
+                for card in result["flashcards"]:
+                    flashcard = Flashcard(book_id=book.id, front=card["front"], back=card["back"])
+                    db.add(flashcard)
+                    db.flush()  # get flashcard.id before creating review_state
+                    db.add(ReviewState(flashcard_id=flashcard.id, user_id=current_user.id))
 
         book.status = "ready"
         db.commit()
-        return {"filename": file.filename, "status": "ready", "book_id": book.id, "is_scanned": book.is_scanned}
+        return {
+            "filename": file.filename, "status": "ready", "book_id": book.id,
+            "is_scanned": book.is_scanned,
+            "genre": book.genre, "sub_genre": book.sub_genre, "content_mode": book.content_mode,
+        }
 
     except IngestionError as e:
         logger.warning("Ingestion failed for %s: %s", file.filename, e)
@@ -121,6 +158,7 @@ def list_books(db: Session = Depends(get_db), current_user: User = Depends(get_c
             "id": b.id, "title": b.title, "author": b.author, "status": b.status,
             "is_scanned": b.is_scanned, "error_message": b.error_message,
             "error_code": b.error_code, "created_at": b.created_at,
+            "genre": b.genre, "sub_genre": b.sub_genre, "content_mode": b.content_mode,
         }
         for b in books
     ]
@@ -137,6 +175,7 @@ def book_status(book_id: str, db: Session = Depends(get_db), current_user: User 
     return {
         "id": book.id, "status": book.status, "is_scanned": book.is_scanned,
         "error_message": book.error_message, "error_code": book.error_code,
+        "genre": book.genre, "sub_genre": book.sub_genre, "content_mode": book.content_mode,
     }
 
 
