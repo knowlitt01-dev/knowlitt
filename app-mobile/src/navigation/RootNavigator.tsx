@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -7,8 +7,11 @@ import { useAuth } from '../lib/AuthContext';
 import { colors, spacing, radius } from '../lib/theme';
 
 // Auth Screens
+import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import { getHasCompletedOnboarding } from '../lib/onboardingStorage';
+
 
 // Tab Screens
 import DashboardScreen from '../screens/DashboardScreen';
@@ -113,9 +116,10 @@ function MainTabNavigator() {
   );
 }
 
-function AuthStack() {
+function AuthStack({ initialRouteName = 'Login' }: { initialRouteName?: string }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
     </Stack.Navigator>
@@ -145,9 +149,35 @@ function AppStack() {
 }
 
 export default function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboardingState] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    let isMounted = true;
+    async function checkOnboarding() {
+      try {
+        const completed = await getHasCompletedOnboarding();
+        if (isMounted) {
+          setHasCompletedOnboardingState(completed);
+        }
+      } catch {
+        if (isMounted) {
+          setHasCompletedOnboardingState(false);
+        }
+      } finally {
+        if (isMounted) {
+          setOnboardingChecked(true);
+        }
+      }
+    }
+    checkOnboarding();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (authLoading || !onboardingChecked) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -157,7 +187,12 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
+      {user ? (
+        <AppStack />
+      ) : (
+        <AuthStack initialRouteName={hasCompletedOnboarding ? 'Login' : 'Onboarding'} />
+      )}
     </NavigationContainer>
   );
 }
+

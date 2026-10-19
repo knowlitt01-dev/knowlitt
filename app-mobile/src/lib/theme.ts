@@ -125,3 +125,72 @@ export const shadows = {
     elevation: 8,
   },
 };
+
+/**
+ * Stitch Design System Foundation: "Literary Minimalist"
+ * High-contrast editorial serif paired with neutral modern sans-serif.
+ * Preserves legacy design tokens above for full backwards compatibility.
+ */
+export const editorialTheme = {
+  fonts: {
+    serifSemiBold: 'PlayfairDisplay_600SemiBold',
+    serifMedium: 'PlayfairDisplay_500Medium',
+    serifRegular: 'PlayfairDisplay_400Regular',
+    serifItalic: 'PlayfairDisplay_400Regular_Italic',
+    sansRegular: 'Inter_400Regular',
+    sansMedium: 'Inter_500Medium',
+    sansSemiBold: 'Inter_600SemiBold',
+  },
+  colors: {
+    light: {
+      canvas: '#F4F4F6',
+      card: '#FFFFFF',
+      illustrationBg: '#FBFBFC',
+      border: '#E4E4E7',
+      primaryText: '#111111',
+      secondaryText: '#71717A',
+      accent: '#F5A623',
+      accentHover: '#E29515',
+      accentSoft: 'rgba(245, 166, 35, 0.15)',
+      buttonPrimary: '#111111',
+      buttonPrimaryText: '#FFFFFF',
+      buttonSecondary: '#F4F4F5',
+      buttonSecondaryText: '#27272A',
+      stepperInactive: '#D4D4D8',
+      stepperActive: '#F5A623',
+      indicatorBar: '#E4E4E7',
+    },
+    dark: {
+      canvas: '#080809',
+      card: '#121215',
+      illustrationBg: '#18181D',
+      border: '#27272A',
+      primaryText: '#F3F3F5',
+      secondaryText: '#A0A0A8',
+      accent: '#F5A623',
+      accentHover: '#E29515',
+      accentSoft: 'rgba(245, 166, 35, 0.2)',
+      buttonPrimary: '#FFFFFF',
+      buttonPrimaryText: '#0E0E10',
+      buttonSecondary: '#27272A',
+      buttonSecondaryText: '#F4F4F5',
+      stepperInactive: '#3E3E46',
+      stepperActive: '#F5A623',
+      indicatorBar: '#27272A',
+    },
+  },
+  spacing: {
+    margin: 20,
+    spaceXs: 4,
+    spaceSm: 8,
+    spaceMd: 16,
+    spaceLg: 24,
+    spaceXl: 36,
+  },
+  radius: {
+    card: 24,
+    pill: 9999,
+    book: 8,
+  },
+};
+

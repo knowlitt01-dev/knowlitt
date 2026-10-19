@@ -177,6 +177,16 @@ export default function LoginScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
 
+        {/* Temporary Dev Button to Test Onboarding */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Onboarding')}
+          style={styles.devOnboardingBtn}
+          activeOpacity={0.8}
+          accessibilityLabel="Test Onboarding Screen"
+        >
+          <Text style={styles.devOnboardingBtnText}>✦ Test Onboarding Flow (Dev)</Text>
+        </TouchableOpacity>
+
         {/* Security badge */}
         <View style={styles.trustBadge}>
           <Text style={styles.trustIcon}>🛡️</Text>
@@ -471,6 +481,22 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 11,
     fontWeight: '500',
+  },
+  devOnboardingBtn: {
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(245, 166, 35, 0.14)',
+    borderWidth: 1,
+    borderColor: '#F5A623',
+    alignSelf: 'center',
+  },
+  devOnboardingBtnText: {
+    color: '#F5A623',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
 

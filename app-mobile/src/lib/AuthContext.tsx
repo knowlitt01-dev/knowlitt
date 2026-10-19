@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api, setToken, clearToken } from './api';
+import { setHasCompletedOnboarding } from './onboardingStorage';
 
 interface AuthUser {
   id: string;
@@ -29,6 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await api.me();
       setUser(me);
+      if (me) {
+        setHasCompletedOnboarding(true);
+      }
     } catch {
       setUser(null);
     } finally {
@@ -39,12 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const { access_token } = await api.login(email, password);
     await setToken(access_token);
+    await setHasCompletedOnboarding(true);
     await refreshUser();
   }
 
   async function signup(email: string, password: string) {
     const { access_token } = await api.signup(email, password);
     await setToken(access_token);
+    await setHasCompletedOnboarding(true);
     await refreshUser();
   }
 
