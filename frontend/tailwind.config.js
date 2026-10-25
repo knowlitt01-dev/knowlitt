@@ -46,9 +46,19 @@ module.exports = {
           600: '#4A36DE',
           700: '#3827C5',
         },
+        // Editorial theme tokens from mobile app / Stitch design system
+        editorial: {
+          amber: '#F5A623',
+          amberHover: '#E29515',
+          canvasLight: '#F4F4F6',
+          canvasDark: '#080809',
+          cardDark: '#121215',
+          borderDark: '#27272A',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Playfair Display', 'Georgia', 'serif'],
       },
       borderRadius: {
         '10': '10px',

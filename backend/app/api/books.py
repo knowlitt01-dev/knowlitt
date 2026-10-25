@@ -109,7 +109,7 @@ def _process_single_upload(file: UploadFile, db: Session, current_user: User) ->
             # Original pipeline: chunk → LLM → insights + flashcards.
             order_index = 0
             for section in sections:
-                result = process_section(section)
+                result = process_section(section, book_title=book.title, sub_genre=book.sub_genre or "")
                 for insight in result["insights"]:
                     db.add(Insight(
                         book_id=book.id,

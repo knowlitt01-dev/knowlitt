@@ -21,9 +21,15 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String)
+    hashed_password: Mapped[str | None] = mapped_column(String, nullable=True)  # None for OAuth-only users
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Google OAuth / Drive
+    google_id: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
+    google_access_token: Mapped[str | None] = mapped_column(String, nullable=True)   # short-lived, refreshed on use
+    google_refresh_token: Mapped[str | None] = mapped_column(String, nullable=True)  # long-lived, stored encrypted
+    google_drive_connected: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Trial / subscription
     trial_started_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)

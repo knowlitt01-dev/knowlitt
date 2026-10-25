@@ -1,29 +1,47 @@
-# BookTutor
+# Knowlit
 
-A progressive learning platform that delivers daily insights and spaced-repetition flashcards from books you upload — with multi-channel delivery, a 7-day trial + subscription model, a full admin panel, web app, and a native mobile app.
+An AI-powered learning platform that delivers daily insights and spaced-repetition flashcards from books you upload — with multi-channel delivery, a 7-day trial + subscription model, a full admin panel, web app, and a native mobile app.
 
 ## Project Structure
 
 ```
-booktutor/
+knowlitt/
 ├── backend/      # FastAPI — shared by both web and mobile
-├── frontend/     # Next.js web app
+├── frontend/     # Next.js 14 web app (PWA)
 └── app-mobile/   # Expo/React Native app (iOS + Android + web)
 ```
 
-One backend serves both frontends identically — same auth, same trial gating, same
-SM-2 logic. See `app-mobile/README.md` for mobile-specific setup.
+One backend serves both frontends identically — same auth, same trial gating, same SM-2 logic. See `app-mobile/README.md` for mobile-specific setup.
+
+## Routing Overview
+
+| Route | Description | Auth required |
+|---|---|---|
+| `/` | Landing page (unauthenticated) or Dashboard (authenticated) | No |
+| `/login` | Sign in page | No |
+| `/signup` | Create account page | No |
+| `/books` | Book library & PDF upload | Yes |
+| `/review` | Flashcard review session (SM-2) | Yes |
+| `/roadmap` | Learning roadmap per book | Yes |
+| `/discover` | Book discovery & recommendations | Yes |
+| `/connectors` | Google Drive / Kindle integrations | Yes |
+| `/upgrade` | Subscription plans & billing | Yes |
+| `/profile` | User profile settings | Yes |
+| `/admin/*` | Admin panel (admin users only) | Yes + admin |
+| `/welcome` | Onboarding carousel (alias for `/`) | No |
 
 ## Features
 
 **Core loop**
 - Multi-file PDF upload (local or Google Drive) with real-time processing
 - AI-powered insights (Groq's free tier, with an offline fallback so it always runs)
+- Two content modes: **Extraction** (key ideas & flashcards) and **Companion** (reading companion with reflection prompts)
 - Spaced repetition via SM-2 (same algorithm as Anki)
 - Daily digest of unread insights, delivered fresh each day
-- Flashcard review sessions with 4-button SM-2 ratings
+- Flashcard review sessions with SM-2 ratings
 - Shareable insight cards for Instagram/WhatsApp/Twitter
 - PWA — installable on phones, works offline via service worker
+- Onboarding carousel with dark/light mode, swipe & keyboard navigation
 
 **Growth & retention**
 - Telegram notifications (free, no approval process)
@@ -42,19 +60,16 @@ SM-2 logic. See `app-mobile/README.md` for mobile-specific setup.
 
 ## Tech Stack
 
-**Backend:** FastAPI, SQLAlchemy, SQLite/PostgreSQL, Groq API, Razorpay, Meta Cloud API, Telegram Bot API
-**Frontend:** Next.js, React, Tailwind CSS, TypeScript
+**Backend:** FastAPI, SQLAlchemy, SQLite/PostgreSQL, Groq API, Razorpay, Meta Cloud API, Telegram Bot API  
+**Frontend:** Next.js 14, React, Tailwind CSS, TypeScript, Lucide React
 
 ## Quick Start
 
-See `QUICKSTART.md` for a 5-minute local setup — the core app (auth, upload, daily digest,
-review) runs with **zero external accounts**.
+See `QUICKSTART.md` for a 5-minute local setup — the core app (auth, upload, daily digest, review) runs with **zero external accounts**.
 
 ## Optional Features Setup
 
-Each of these is fully built and wired in — they just need your own credentials to become
-functional. Without them, the relevant UI shows a clear "not configured" message instead
-of breaking.
+Each of these is fully built and wired in — they just need your own credentials to become functional. Without them, the relevant UI shows a clear "not configured" message instead of breaking.
 
 | Feature | Guide | Time to set up |
 |---|---|---|
@@ -85,16 +100,12 @@ See `DEPLOY.md` for Railway (backend) + Vercel (frontend) deployment — free ti
 
 ## Security
 
-See `SECURITY.md` for the pre-production checklist. The core security properties
-(user isolation, no IDOR, webhook verification, rate limiting) are already built and
-tested — this doc covers what to add before real payment traffic.
+See `SECURITY.md` for the pre-production checklist. The core security properties (user isolation, no IDOR, webhook verification, rate limiting) are already built and tested — this doc covers what to add before real payment traffic.
 
 ## What's Genuinely Not Included
 
-- **EPUB support, OCR for scanned PDFs** — the ingestion pipeline is structured to add
-  these, but they're not built. PDF-only for now.
-- **Cross-book deduplication, content progression (surface → advanced)** — the schema
-  supports adding these; not implemented.
+- **EPUB support, OCR for scanned PDFs** — the ingestion pipeline is structured to add these, but they're not built. PDF-only for now.
+- **Cross-book deduplication, content progression (surface → advanced)** — the schema supports adding these; not implemented.
 - **Kindle/Goodreads import, referral system** — discussed as growth ideas, not built.
 
 ## License

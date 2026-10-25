@@ -7,6 +7,7 @@ import { api, setToken, clearToken, ApiError } from '@/lib/api'
 interface AuthUser {
   id: string
   email: string
+  google_drive_connected: boolean
 }
 
 interface AuthContextValue {

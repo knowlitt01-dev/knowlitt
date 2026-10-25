@@ -1,5 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+/** Redirects the browser to the backend's Google OAuth authorize endpoint. */
+export function googleOAuthUrl(): string {
+  return `${API_URL}/auth/google/authorize`;
+}
+
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('bt_token');

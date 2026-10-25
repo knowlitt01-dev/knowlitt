@@ -1,12 +1,11 @@
-# BookTutor — 5-Minute Local Setup
+# Knowlit — 5-Minute Local Setup
 
-**Everything you need is in this zip. No external accounts required for local testing.**
+**Everything you need is in this repo. No external accounts required for local testing.**
 
-## 1. Extract & Start Backend
+## 1. Start Backend
 
 ```bash
-unzip booktutor-app.zip
-cd booktutor/backend
+cd knowlitt/backend
 
 # Set up (one-time)
 cp .env.example .env
@@ -22,7 +21,7 @@ uvicorn app.main:app --reload
 ## 2. Start Frontend (New Terminal)
 
 ```bash
-cd booktutor/frontend
+cd knowlitt/frontend
 
 # Set up (one-time)
 npm install
@@ -35,11 +34,12 @@ npm run dev
 
 ## 3. Test It
 
-1. **Sign up:** Use any email + 8-char password
-2. **Upload:** Drag a PDF (or download a book PDF online)
-3. **Wait:** 10-30s, then check dashboard
-4. **Review:** Click "Review N Cards" and rate flashcards (Again/Hard/Good/Easy)
-5. **Verify:** Next review dates update automatically (SM-2 working!)
+1. **Landing page:** `localhost:3000` shows an onboarding carousel
+2. **Sign up:** Click "Get started" → use any email + 8-char password
+3. **Upload:** Go to `/books`, drag a PDF (or download a book PDF online)
+4. **Wait:** 10–30s for AI processing, then check the dashboard
+5. **Review:** Click "Review N Cards" and rate flashcards (Again / Mastered)
+6. **Verify:** Next review dates update automatically (SM-2 working!)
 
 ## Optional: Better Insights
 
@@ -60,15 +60,23 @@ Now insights are LLM-generated instead of simple heuristics. Same app, much bett
 pip install -r requirements.txt
 ```
 
-**Frontend blank:**
-- Check browser console (F12 → Console tab)
-- Make sure backend is running on 8000
+**Frontend shows blank page or 404 chunks:**
+```bash
+# Clear stale build cache and restart
+cd frontend
+Remove-Item -Recurse -Force .next   # PowerShell
+# or: rm -rf .next                  # bash/macOS
+npm run dev
+```
 
-**Insight generation seems slow:**
-Without Groq key, it's fast. With Groq key (first call), it takes 10-20s while LLM generates — subsequent books are cached.
+**Still seeing old pages after UI update:**
+The Next.js `.next/` build cache may be stale. Delete it and restart (`npm run dev`).
 
 **"Could not extract text from PDF":**
-This PDF is image-only (scanned). The MVP only handles text-based PDFs. Try another PDF or find a digital/text-based version.
+This PDF is image-only (scanned). Only text-based PDFs are supported. Try a different file.
+
+**Insight generation seems slow:**
+Without Groq key, it's fast. With Groq key (first call), it takes 10–20s while LLM generates — subsequent books are cached.
 
 ## Next: Deploy to Production
 
@@ -78,7 +86,7 @@ Once you've tested locally, see `DEPLOY.md` for Railway/Vercel deployment (free 
 
 ```
 ┌─────────────────┐
-│   Frontend      │  Login → Dashboard (daily insights) → Review flashcards
+│   Frontend      │  Landing → Login/Signup → Dashboard → Review → Roadmap
 │  (Next.js PWA)  │
 └────────┬────────┘
          │ HTTP (Bearer JWT)
@@ -108,11 +116,11 @@ Once you've tested locally, see `DEPLOY.md` for Railway/Vercel deployment (free 
 ## File Structure
 
 ```
-booktutor/
+knowlitt/
 ├── backend/                  # FastAPI server
 │   ├── app/
 │   │   ├── main.py          # Entry point
-│   │   ├── api/             # Routes (auth, books, reviews, daily)
+│   │   ├── api/             # Routes (auth, books, reviews, daily, admin)
 │   │   ├── services/        # Business logic (ingestion, LLM, SM-2)
 │   │   ├── models/          # SQLAlchemy models
 │   │   ├── core/            # Config, security (JWT, bcrypt)
@@ -121,24 +129,42 @@ booktutor/
 │   ├── Dockerfile           # For production
 │   └── .env.example         # Environment template
 │
-├── frontend/                # Next.js React app
-│   ├── app/                 # Pages (login, signup, dashboard, review)
-│   ├── components/          # UI (BookUpload, DailyDigest, Flashcard)
-│   ├── lib/                 # API client, types
-│   ├── public/              # PWA manifest, service worker
+├── frontend/                # Next.js 14 React app (PWA)
+│   ├── app/                 # App Router pages
+│   │   ├── page.tsx         # Home (landing or dashboard depending on auth)
+│   │   ├── login/           # Sign in
+│   │   ├── signup/          # Create account
+│   │   ├── books/           # Book library & upload
+│   │   ├── review/          # Flashcard review session
+│   │   ├── roadmap/         # Learning roadmap
+│   │   ├── discover/        # Book discovery
+│   │   ├── connectors/      # Google Drive / Kindle
+│   │   ├── upgrade/         # Plans & billing
+│   │   ├── profile/         # User profile
+│   │   ├── admin/           # Admin panel
+│   │   └── welcome/         # Onboarding alias
+│   ├── components/          # Shared UI components
+│   │   ├── AppShell.tsx     # Sidebar layout for authenticated pages
+│   │   ├── AuthProvider.tsx # Auth context (JWT, login, signup, logout)
+│   │   ├── OnboardingLanding.tsx  # Landing page carousel
+│   │   └── ...
+│   ├── lib/                 # API client (lib/api.ts)
+│   ├── public/              # PWA manifest, service worker, illustrations
 │   ├── package.json
 │   └── .env.local.example
 │
-├── README.md                # Overview
+├── app-mobile/              # Expo/React Native (iOS + Android + web)
+├── README.md                # Overview (this file's parent)
 ├── DEPLOY.md                # Production deployment
 ├── SECURITY.md              # Security checklist
+├── BILLING.md               # Razorpay setup
+├── NOTIFICATIONS.md         # Telegram & WhatsApp setup
+├── GOOGLE_DRIVE.md          # Google Drive integration
 └── QUICKSTART.md            # This file
 ```
 
 ---
 
-**That's it.** You now have a working MVP of an AI-powered learning platform. The backend is production-grade (auth, error handling, rate-limiting-ready), and the frontend is a PWA (installable on phones).
-
-Extend it using the separate prompt files, or just use it as-is to test the core loop.
+**That's it.** You now have a working AI-powered learning platform. The backend is production-grade (auth, error handling, rate-limiting-ready), and the frontend is a PWA (installable on phones).
 
 Good luck! 🚀

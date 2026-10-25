@@ -1,5 +1,5 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Inter, Playfair_Display } from 'next/font/google'
 import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
 
@@ -10,16 +10,27 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-playfair',
+})
+
 export const metadata: Metadata = {
-  title: 'BookTutor — Learn from your books, daily',
+  title: 'Knowlit — Learn from your books, daily',
   description: 'AI-powered daily lessons from the books you own. Spaced-repetition flashcards, reading roadmaps, and multi-channel notifications.',
   manifest: '/manifest.json',
+}
+
+export const viewport: Viewport = {
   themeColor: '#4A36DE',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <meta name="theme-color" content="#4A36DE" />
         <link rel="apple-touch-icon" href="/icon-192.png" />

@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     RAZORPAY_PLAN_ID_MONTHLY: str = ""
     RAZORPAY_PLAN_ID_YEARLY: str = ""
 
+    # Google OAuth (for Sign-in with Google + auto Drive access)
+    # Create credentials at: https://console.cloud.google.com/apis/credentials
+    # Set Authorized redirect URI to: <FRONTEND_URL>/api/auth/google/callback
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    # The base URL of your frontend (no trailing slash)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     class Config:
         env_file = ".env"
 
