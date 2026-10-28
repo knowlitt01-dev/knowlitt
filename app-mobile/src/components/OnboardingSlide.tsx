@@ -41,14 +41,15 @@ export default function OnboardingSlide({
           {
             width: cardSize,
             height: cardSize,
-
+            backgroundColor: themeColors.illustrationBg,
+            borderColor: themeColors.border,
           },
         ]}
       >
         <Image
           source={imageSource}
           style={styles.illustration}
-          resizeMode="contain"
+          resizeMode="cover"
           accessibilityLabel={`${titleLine1} ${titleLine2}`}
         />
       </View>
@@ -114,6 +115,8 @@ const styles = StyleSheet.create({
   illustration: {
     width: '100%',
     height: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   textBlock: {
     alignItems: 'center',

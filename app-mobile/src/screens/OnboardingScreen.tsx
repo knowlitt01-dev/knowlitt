@@ -1,16 +1,18 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
   useColorScheme,
   AccessibilityInfo,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   ViewToken,
+  Platform,
+  Appearance,
+  ColorSchemeName,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -60,13 +62,70 @@ const SLIDES: SlideData[] = [
 export default function OnboardingScreen({ navigation }: any) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const systemScheme = useColorScheme();
+  const hookScheme = useColorScheme();
 
-  const [isDark, setIsDark] = useState(systemScheme === 'dark');
+  const [activeScheme, setActiveScheme] = useState<'light' | 'dark' | null>(() => {
+    Appearance.setColorScheme?.('unspecified');
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    const cs = Appearance.getColorScheme();
+    return cs === 'dark' ? 'dark' : cs === 'light' ? 'light' : hookScheme === 'dark' ? 'dark' : hookScheme === 'light' ? 'light' : null;
+  });
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const flatListRef = useRef<FlatList<SlideData>>(null);
+
+  useEffect(() => {
+    // Reset any locked appearance so the native engine follows device theme
+    Appearance.setColorScheme?.('unspecified');
+
+    const checkScheme = () => {
+      let scheme: 'light' | 'dark' | null = null;
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia) {
+        scheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } else {
+        const cs = Appearance.getColorScheme();
+        if (cs === 'dark' || cs === 'light') {
+          scheme = cs;
+        }
+      }
+      if (scheme) {
+        setActiveScheme(scheme);
+      }
+    };
+
+    checkScheme();
+
+    const subscription = Appearance.addChangeListener((preferences) => {
+      const cs = preferences?.colorScheme;
+      if (cs === 'dark' || cs === 'light') {
+        setActiveScheme(cs);
+      }
+    });
+
+    let mql: MediaQueryList | null = null;
+    let mqHandler: ((e: MediaQueryListEvent) => void) | null = null;
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.matchMedia) {
+      mql = window.matchMedia('(prefers-color-scheme: dark)');
+      mqHandler = (e: MediaQueryListEvent) => {
+        setActiveScheme(e.matches ? 'dark' : 'light');
+      };
+      mql.addEventListener?.('change', mqHandler);
+    }
+
+    return () => {
+      subscription.remove();
+      if (mql && mqHandler) {
+        mql.removeEventListener?.('change', mqHandler);
+      }
+    };
+  }, []);
+
+  const resolvedScheme = activeScheme || hookScheme || Appearance.getColorScheme();
+  const isDark = resolvedScheme === 'dark';
 
   const themeColors = isDark ? editorialTheme.colors.dark : editorialTheme.colors.light;
 
@@ -110,35 +169,19 @@ export default function OnboardingScreen({ navigation }: any) {
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Top Header Bar */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 16) }]}>
-        {/* Brand Label & Theme Switcher */}
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 18, 28) }]}>
+        {/* Brand Logo */}
         <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={[
-              styles.themeToggle,
-              {
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              },
-            ]}
-            onPress={() => setIsDark((prev) => !prev)}
-            accessibilityLabel="Toggle visual theme"
-            accessibilityRole="button"
-            activeOpacity={0.7}
-          >
-            <Text style={{ fontSize: 13 }}>{isDark ? '☀️' : '🌙'}</Text>
-          </TouchableOpacity>
-
-          <Text
-            style={[
-              styles.brandText,
-              {
-                color: themeColors.secondaryText,
-                fontFamily: editorialTheme.fonts.sansMedium,
-              },
-            ]}
-          >
-            BOOKTUTOR
-          </Text>
+          <Image
+            source={
+              isDark
+                ? require('../../assets/icons/KnowLittLogoHorizantalDark.png')
+                : require('../../assets/icons/KnowLittLogoHorizantalLight.png')
+            }
+            style={styles.brandLogo}
+            resizeMode="contain"
+            accessibilityLabel="KnowLitt"
+          />
         </View>
 
         {/* Skip Action */}
@@ -148,6 +191,7 @@ export default function OnboardingScreen({ navigation }: any) {
             accessibilityLabel="Skip onboarding"
             accessibilityRole="button"
             style={styles.skipButton}
+            hitSlop={{ top: 12, bottom: 12, left: 16, right: 12 }}
             activeOpacity={0.7}
           >
             <Text
@@ -356,30 +400,30 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 40,
   },
-  themeToggle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  brandText: {
-    fontSize: 12,
-    letterSpacing: 1.6,
+  brandLogo: {
+    width: 159,
+    height: 40,
   },
   skipButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingLeft: 12,
+    paddingRight: 0,
     borderRadius: 14,
   },
   skipText: {
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginTop: 2.5,
   },
   skipPlaceholder: {
-    width: 48,
-    height: 24,
+    width: 40,
+    height: 40,
   },
   carousel: {
     flex: 1,
@@ -450,9 +494,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryPillBtn: {
-    width: '100%',
-    height: 54,
-    borderRadius: 27,
+    width: '80%',
+    maxWidth: 290,
+    height: 52,
+    borderRadius: 26,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

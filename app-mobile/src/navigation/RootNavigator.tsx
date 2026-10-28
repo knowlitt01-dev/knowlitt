@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, ActivityIndicator, Text, useColorScheme, Appearance } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../lib/AuthContext';
@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '../lib/theme';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import { getHasCompletedOnboarding } from '../lib/onboardingStorage';
 
 
@@ -122,6 +123,7 @@ function AuthStack({ initialRouteName = 'Login' }: { initialRouteName?: string }
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -152,6 +154,8 @@ export default function RootNavigator() {
   const { user, loading: authLoading } = useAuth();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboardingState] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = (colorScheme || Appearance.getColorScheme()) === 'dark';
 
   useEffect(() => {
     let isMounted = true;
@@ -186,7 +190,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
       {user ? (
         <AppStack />
       ) : (
@@ -195,4 +199,3 @@ export default function RootNavigator() {
     </NavigationContainer>
   );
 }
-

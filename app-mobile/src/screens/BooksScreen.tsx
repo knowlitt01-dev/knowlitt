@@ -510,5 +510,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 6,
+  },
+  emptyDesc: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  bookCardFailed: {
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  modeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  modeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  errorChipText: {
+    color: '#EF4444',
+    fontSize: 12,
+  },
 });
 

@@ -1,575 +1,691 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+  useColorScheme,
+  Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
+import { editorialTheme } from '../lib/theme';
+import AuthHeader from '../components/AuthHeader';
+import { ArrowRightIcon, EyeIcon, AmberDot } from '../components/AuthIcons';
 
 export default function SignupScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const systemScheme = useColorScheme();
+  const [isDark, setIsDark] = useState(systemScheme === 'dark');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(true);
+
+  const [nameFocused, setNameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const { signup } = useAuth();
+  const themeColors = isDark ? editorialTheme.colors.dark : editorialTheme.colors.light;
 
-  // Helper function to calculate password strength
-  function getPasswordStrength() {
-    if (!password) return { label: '', color: 'transparent', width: '0%' };
-    if (password.length < 6) return { label: 'Weak', color: '#EF4444', width: '30%' };
-    if (password.length < 10) return { label: 'Good', color: '#F59E0B', width: '65%' };
-    return { label: 'Strong', color: '#10B981', width: '100%' };
-  }
-
-  const strength = getPasswordStrength();
+  // Real-time password criteria
+  const hasMinLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
 
   async function handleSubmit() {
-    if (!email || !password) {
-      setError('Please fill in all required fields');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
+      setError('Please fill in your email and password');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+
+    if (!hasMinLength) {
+      setError('Password must be at least 8 characters');
       return;
     }
-    if (!agreeTerms) {
-      setError('Please accept the Terms of Service to continue');
-      return;
-    }
+
     setError('');
     setLoading(true);
     try {
-      await signup(email, password);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'An unexpected error occurred');
+      await signup(trimmedEmail, password);
+    } catch (err: any) {
+      setError(err instanceof ApiError ? err.message : 'An account with this email already exists or registration could not be completed.');
     } finally {
       setLoading(false);
     }
   }
 
+  const showTerms = () => {
+    Alert.alert(
+      'Terms & Privacy',
+      'By joining KnowLitt, your summaries and reading notes are kept private and encrypted. Terms of Service and Privacy Policy apply.'
+    );
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        
-        {/* Navigation / Header Bar */}
-        <View style={styles.topBar}>
+    <View style={[styles.container, { backgroundColor: themeColors.canvas, paddingTop: insets.top }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+
+      {/* Brand Header — Arrow-only back button on the left, horizontal KnowLitt logo immediately to its right */}
+      <AuthHeader
+        isDark={isDark}
+        onBack={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Login');
+          }
+        }}
+        rightElement={
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.7}
+            onPress={() => setIsDark(!isDark)}
+            style={[
+              styles.themeToggleBtn,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                borderColor: themeColors.border,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Toggle Theme"
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Text style={{ fontSize: 13 }}>{isDark ? '☀️' : '🌙'}</Text>
           </TouchableOpacity>
-          <Text style={styles.topBarTitle}>BookTutor</Text>
-          <View style={{ width: 36 }} />
-        </View>
+        }
+      />
 
-        {/* Brand Hero Header */}
-        <View style={styles.header}>
-          <View style={styles.logoBadgeContainer}>
-            <View style={styles.logoGlow} />
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoIcon}>📖</Text>
-              <Text style={styles.sparkleIcon}>✨</Text>
-            </View>
-          </View>
-
-          <View style={styles.badgeRow}>
-            <View style={styles.tagBadge}>
-              <Text style={styles.tagBadgeText}>✦ START FREE TODAY</Text>
-            </View>
-          </View>
-
-          <Text style={styles.title}>Create Your Account</Text>
-          <Text style={styles.subtitle}>
-            Join thousands mastering books in 5 mins a day with AI guidance
-          </Text>
-        </View>
-
-        {/* Card Form */}
-        <View style={styles.card}>
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorIcon}>⚠️</Text>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Full Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>👤</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Alex Morgan"
-                placeholderTextColor="#64748B"
-                value={name}
-                onChangeText={setName}
-                editable={!loading}
-              />
-            </View>
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>✉️</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="alex@institution.edu"
-                placeholderTextColor="#64748B"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!loading}
-              />
-            </View>
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password (min 8 chars)</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🔒</Text>
-              <TextInput
-                style={[styles.input, { paddingRight: 40 }]}
-                placeholder="Create a strong password"
-                placeholderTextColor="#64748B"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeToggle}
-                onPress={() => setShowPassword(!showPassword)}
-                activeOpacity={0.7}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Main Editorial Form Area */}
+          <View style={styles.formSection}>
+            {/* Badge & Heading */}
+            <View style={styles.heroTextGroup}>
+              <View
+                style={[
+                  styles.chapterPill,
+                  {
+                    backgroundColor: themeColors.tagBg,
+                    borderColor: themeColors.tagBorder,
+                  },
+                ]}
               >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
-              </TouchableOpacity>
+                <AmberDot size={5} />
+                <Text
+                  style={[
+                    styles.chapterPillText,
+                    {
+                      color: themeColors.tagText,
+                      fontFamily: editorialTheme.fonts.sansMedium,
+                    },
+                  ]}
+                >
+                  Begin · Membership
+                </Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.headline,
+                  {
+                    color: themeColors.primaryText,
+                    fontFamily: editorialTheme.fonts.serifSemiBold,
+                  },
+                ]}
+              >
+                Make room for{'\n'}
+                <Text
+                  style={[
+                    styles.headlineItalic,
+                    { fontFamily: editorialTheme.fonts.serifItalic },
+                  ]}
+                >
+                  more ideas.
+                </Text>
+              </Text>
+
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    color: themeColors.secondaryText,
+                    fontFamily: editorialTheme.fonts.sansRegular,
+                  },
+                ]}
+              >
+                Turn your reading list into daily 5-minute insights and lasting knowledge retention.
+              </Text>
             </View>
 
-            {/* Password strength meter */}
-            {password ? (
-              <View style={styles.strengthContainer}>
-                <View style={styles.strengthBarTrack}>
-                  <View style={[styles.strengthBarFill, { width: strength.width as any, backgroundColor: strength.color }]} />
-                </View>
-                <Text style={[styles.strengthText, { color: strength.color }]}>
-                  {strength.label}
+            {/* Error Banner */}
+            {error ? (
+              <View
+                style={[
+                  styles.errorBanner,
+                  {
+                    backgroundColor: themeColors.errorBg,
+                    borderColor: themeColors.errorBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorIconText, { color: themeColors.errorText }]}>⚠️</Text>
+                <Text
+                  style={[
+                    styles.errorBannerText,
+                    {
+                      color: themeColors.errorText,
+                      fontFamily: editorialTheme.fonts.sansRegular,
+                    },
+                  ]}
+                >
+                  {error}
                 </Text>
               </View>
             ) : null}
-          </View>
 
-          {/* Terms Checkbox */}
-          <TouchableOpacity
-            style={styles.rememberRow}
-            onPress={() => setAgreeTerms(!agreeTerms)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, agreeTerms && styles.checkboxChecked]}>
-              {agreeTerms && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={styles.termsText}>
-              I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
-            </Text>
-          </TouchableOpacity>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>Create Free Account</Text>
-                <Text style={styles.buttonArrow}>➔</Text>
+            {/* Form Fields */}
+            <View style={styles.fieldsContainer}>
+              {/* Full Name */}
+              <View style={styles.inputGroup}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    {
+                      color: themeColors.primaryText,
+                      fontFamily: editorialTheme.fonts.sansMedium,
+                    },
+                  ]}
+                >
+                  Full name
+                </Text>
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: themeColors.inputBg,
+                      borderColor: nameFocused
+                        ? themeColors.inputBorderFocus
+                        : themeColors.inputBorder,
+                      color: themeColors.primaryText,
+                      fontFamily: editorialTheme.fonts.sansRegular,
+                    },
+                  ]}
+                  placeholder="Elena Rostova"
+                  placeholderTextColor={themeColors.inputPlaceholder}
+                  value={name}
+                  onChangeText={setName}
+                  onFocus={() => setNameFocused(true)}
+                  onBlur={() => setNameFocused(false)}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  editable={!loading}
+                />
               </View>
-            )}
-          </TouchableOpacity>
 
-          {/* Social Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or sign up with</Text>
-            <View style={styles.dividerLine} />
+              {/* Email Address */}
+              <View style={styles.inputGroup}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    {
+                      color: themeColors.primaryText,
+                      fontFamily: editorialTheme.fonts.sansMedium,
+                    },
+                  ]}
+                >
+                  Email address
+                </Text>
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: themeColors.inputBg,
+                      borderColor: emailFocused
+                        ? themeColors.inputBorderFocus
+                        : themeColors.inputBorder,
+                      color: themeColors.primaryText,
+                      fontFamily: editorialTheme.fonts.sansRegular,
+                    },
+                  ]}
+                  placeholder="elena@example.com"
+                  placeholderTextColor={themeColors.inputPlaceholder}
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => setEmailFocused(false)}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Password */}
+              <View style={styles.inputGroup}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    {
+                      color: themeColors.primaryText,
+                      fontFamily: editorialTheme.fonts.sansMedium,
+                    },
+                  ]}
+                >
+                  Create password
+                </Text>
+
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.passwordInput,
+                      {
+                        backgroundColor: themeColors.inputBg,
+                        borderColor: passwordFocused
+                          ? themeColors.inputBorderFocus
+                          : themeColors.inputBorder,
+                        color: themeColors.primaryText,
+                        fontFamily: editorialTheme.fonts.sansRegular,
+                      },
+                    ]}
+                    placeholder="At least 8 characters"
+                    placeholderTextColor={themeColors.inputPlaceholder}
+                    value={password}
+                    onChangeText={setPassword}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                    accessibilityRole="button"
+                  >
+                    <EyeIcon
+                      visible={showPassword}
+                      color={themeColors.secondaryText}
+                      size={18}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Password Strength & Real-Time Guidelines Indicators */}
+                <View style={styles.strengthRow}>
+                  {/* Indicator 1: 8+ chars */}
+                  <View style={styles.indicatorPill}>
+                    <View
+                      style={[
+                        styles.indicatorDot,
+                        {
+                          backgroundColor: hasMinLength
+                            ? themeColors.accent
+                            : themeColors.stepperInactive,
+                        },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.indicatorText,
+                        {
+                          color: hasMinLength
+                            ? themeColors.primaryText
+                            : themeColors.mutedText,
+                          fontFamily: editorialTheme.fonts.sansMedium,
+                        },
+                      ]}
+                    >
+                      8+ chars
+                    </Text>
+                  </View>
+
+                  {/* Indicator 2: 1 number */}
+                  <View style={styles.indicatorPill}>
+                    <View
+                      style={[
+                        styles.indicatorDot,
+                        {
+                          backgroundColor: hasNumber
+                            ? themeColors.accent
+                            : themeColors.stepperInactive,
+                        },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.indicatorText,
+                        {
+                          color: hasNumber
+                            ? themeColors.primaryText
+                            : themeColors.mutedText,
+                          fontFamily: editorialTheme.fonts.sansMedium,
+                        },
+                      ]}
+                    >
+                      1 number
+                    </Text>
+                  </View>
+
+                  {/* Indicator 3: Upper & lower */}
+                  <View style={styles.indicatorPill}>
+                    <View
+                      style={[
+                        styles.indicatorDot,
+                        {
+                          backgroundColor: hasMixedCase
+                            ? themeColors.accent
+                            : themeColors.stepperInactive,
+                        },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.indicatorText,
+                        {
+                          color: hasMixedCase
+                            ? themeColors.primaryText
+                            : themeColors.mutedText,
+                          fontFamily: editorialTheme.fonts.sansMedium,
+                        },
+                      ]}
+                    >
+                      Upper & lower
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Restrained Terms Notice */}
+              <Text
+                style={[
+                  styles.termsText,
+                  {
+                    color: themeColors.secondaryText,
+                    fontFamily: editorialTheme.fonts.sansRegular,
+                  },
+                ]}
+              >
+                By creating an account, you agree to KnowLitt's{' '}
+                <Text
+                  onPress={showTerms}
+                  style={[styles.termsLink, { color: themeColors.primaryText }]}
+                >
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text
+                  onPress={showTerms}
+                  style={[styles.termsLink, { color: themeColors.primaryText }]}
+                >
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
+
+              {/* Submit Action */}
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={loading}
+                activeOpacity={0.88}
+                style={[
+                  styles.submitButton,
+                  {
+                    backgroundColor: themeColors.buttonPrimary,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Create account"
+              >
+                {loading ? (
+                  <ActivityIndicator color={themeColors.buttonPrimaryText} size="small" />
+                ) : (
+                  <View style={styles.buttonContentRow}>
+                    <Text
+                      style={[
+                        styles.submitButtonText,
+                        {
+                          color: themeColors.buttonPrimaryText,
+                          fontFamily: editorialTheme.fonts.sansSemiBold,
+                        },
+                      ]}
+                    >
+                      Create account
+                    </Text>
+                    <ArrowRightIcon color={themeColors.buttonPrimaryText} size={15} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Social Buttons */}
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-              <Text style={styles.socialIcon}>🌐</Text>
-              <Text style={styles.socialButtonText}>Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-              <Text style={styles.socialIcon}>🍎</Text>
-              <Text style={styles.socialButtonText}>Apple</Text>
-            </TouchableOpacity>
+          {/* Bottom Footer Navigation */}
+          <View
+            style={[
+              styles.footerContainer,
+              {
+                borderTopColor: themeColors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.footerText,
+                {
+                  color: themeColors.secondaryText,
+                  fontFamily: editorialTheme.fonts.sansRegular,
+                },
+              ]}
+            >
+              Already have an account?{' '}
+              <Text
+                onPress={() => navigation.navigate('Login')}
+                style={[
+                  styles.footerLinkBold,
+                  {
+                    color: themeColors.primaryText,
+                    fontFamily: editorialTheme.fonts.sansSemiBold,
+                  },
+                ]}
+              >
+                Log in
+              </Text>
+            </Text>
           </View>
-        </View>
-
-        {/* Navigation to Login */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Login')}
-          style={styles.linkRow}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.linkText}>
-            Already have an account? <Text style={styles.link}>Sign In</Text>
-          </Text>
-        </TouchableOpacity>
-
-        {/* Security badge */}
-        <View style={styles.trustBadge}>
-          <Text style={styles.trustIcon}>🛡️</Text>
-          <Text style={styles.trustText}>256-bit SSL encryption & privacy first</Text>
-        </View>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1326', // Nocturne Luminary Dark Canvas
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: 24,
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#171F33',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
+  themeToggleBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 0.75,
     justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#DAE2FD',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  topBarTitle: {
-    color: '#DAE2FD',
-    fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 0.2,
-  },
-  header: {
     alignItems: 'center',
+  },
+  formSection: {
+    paddingTop: 8,
+  },
+  heroTextGroup: {
     marginBottom: 24,
   },
-  logoBadgeContainer: {
-    position: 'relative',
+  chapterPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 9999,
+    borderWidth: 0.75,
     marginBottom: 14,
   },
-  logoGlow: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(124, 58, 237, 0.25)',
+  chapterPillText: {
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
-  logoBadge: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: '#171F33',
-    borderWidth: 1.5,
-    borderColor: 'rgba(196, 181, 253, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  logoIcon: {
-    fontSize: 24,
-  },
-  sparkleIcon: {
-    fontSize: 12,
-    position: 'absolute',
-    top: 5,
-    right: 5,
-  },
-  badgeRow: {
-    marginBottom: 8,
-  },
-  tagBadge: {
-    backgroundColor: 'rgba(124, 58, 237, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.2)',
-  },
-  tagBadgeText: {
-    color: '#C4B5FD',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#DAE2FD',
+  headline: {
+    fontSize: 31,
+    lineHeight: 37,
     letterSpacing: -0.5,
   },
+  headlineItalic: {
+    fontWeight: 'normal',
+  },
   subtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 6,
-    paddingHorizontal: 16,
-    lineHeight: 19,
+    marginTop: 10,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
-  card: {
-    backgroundColor: '#171F33',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.15)',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  errorContainer: {
+  errorBanner: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(147, 0, 10, 0.25)',
-    borderColor: 'rgba(255, 180, 171, 0.3)',
-    borderWidth: 1,
+    alignItems: 'flex-start',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 14,
-    marginBottom: 16,
+    borderWidth: 0.75,
+    marginBottom: 18,
+    gap: 10,
   },
-  errorIcon: {
+  errorIconText: {
     fontSize: 14,
-    marginRight: 8,
+    marginTop: 1,
   },
-  errorText: {
-    color: '#FFB4AB',
-    fontSize: 13,
-    fontWeight: '500',
+  errorBannerText: {
     flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  fieldsContainer: {
+    gap: 16,
   },
   inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#DAE2FD',
-    marginBottom: 6,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0B1326',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 14,
-    height: 50,
-  },
-  inputIcon: {
-    fontSize: 15,
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: '#F8FAFC',
-  },
-  eyeToggle: {
-    padding: 4,
-  },
-  eyeIcon: {
-    fontSize: 16,
-  },
-  strengthContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
-  },
-  strengthBarTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  strengthBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  strengthText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  rememberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: 'rgba(196, 181, 253, 0.3)',
-    backgroundColor: '#0B1326',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  checkboxChecked: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  termsText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    flex: 1,
-  },
-  termsLink: {
-    color: '#C4B5FD',
-    fontWeight: '600',
-  },
-  button: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 16,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
-    letterSpacing: 0.3,
-  },
-  buttonArrow: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 18,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0B1326',
-    borderRadius: 16,
-    height: 46,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  socialIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  socialButtonText: {
-    color: '#DAE2FD',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  linkRow: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#94A3B8',
-    fontSize: 14,
-  },
-  link: {
-    color: '#C4B5FD',
-    fontWeight: '700',
-  },
-  trustBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
     gap: 6,
   },
-  trustIcon: {
+  inputLabel: {
     fontSize: 12,
+    letterSpacing: 0.1,
   },
-  trustText: {
-    color: '#64748B',
+  textInput: {
+    height: 48,
+    borderRadius: 13,
+    borderWidth: 0.75,
+    paddingHorizontal: 15,
+    fontSize: 14,
+  },
+  passwordInputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    paddingRight: 46,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 14,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  strengthRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingHorizontal: 2,
+  },
+  indicatorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  indicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  indicatorText: {
     fontSize: 11,
-    fontWeight: '500',
+  },
+  termsText: {
+    fontSize: 11.5,
+    lineHeight: 17,
+    paddingTop: 2,
+  },
+  termsLink: {
+    textDecorationLine: 'underline',
+  },
+  submitButton: {
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  buttonContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  submitButtonText: {
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  footerContainer: {
+    marginTop: 28,
+    paddingTop: 16,
+    borderTopWidth: 0.75,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 12.5,
+  },
+  footerLinkBold: {
+    fontWeight: '600',
   },
 });
-

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, Appearance } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -14,9 +14,13 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider } from './src/lib/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { colors } from './src/lib/theme';
+
+// Ensure appearance follows device theme rather than any locked mode
+Appearance.setColorScheme?.('unspecified');
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -27,7 +31,12 @@ export default function App() {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
+    ...Ionicons.font,
   });
+
+  useEffect(() => {
+    Appearance.setColorScheme?.('unspecified');
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return (
@@ -46,4 +55,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
