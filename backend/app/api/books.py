@@ -202,3 +202,70 @@ def delete_book(book_id: str, db: Session = Depends(get_db), current_user: User 
     db.commit()
 
     return {"status": "deleted", "book_id": book_id}
+
+
+@router.get('/{book_id}/summary')
+def get_book_summary(
+    book_id: str,
+    depth: str = 'detailed',
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.models.models import BookSummary
+    from app.services.hierarchical_summarizer import generate_summary
+
+    if depth not in ('quick', 'detailed', 'comprehensive'):
+        raise HTTPException(400, 'depth must be quick, detailed, or comprehensive')
+
+    book = db.query(Book).filter(Book.id == book_id, Book.user_id == current_user.id).first()
+    if not book:
+        raise HTTPException(404, 'Book not found')
+    if book.status != 'ready':
+        raise HTTPException(400, f'Book is still {book.status}')
+
+    cached = db.query(BookSummary).filter(
+        BookSummary.book_id == book_id,
+        BookSummary.depth == depth,
+    ).first()
+    if cached:
+        return {
+            'book_id': book_id,
+            'depth': depth,
+            'content': cached.content,
+            'generated_at': cached.generated_at,
+        }
+
+    insights = (
+        db.query(Insight)
+        .filter(Insight.book_id == book_id)
+        .order_by(Insight.order_index)
+        .all()
+    )
+    if insights:
+        chunk_size = 5
+        sections = [
+            '\n'.join(f'- {ins.text}' for ins in insights[i:i + chunk_size])
+            for i in range(0, len(insights), chunk_size)
+        ]
+    elif book.file_path:
+        try:
+            raw = file_storage.read_file_bytes(book.file_path)
+            text, _ = extract_text_layer(raw, book.filename)
+            sections = chunk_text(text)
+        except Exception:
+            raise HTTPException(500, 'Could not read book content for summarization')
+    else:
+        raise HTTPException(400, 'No content available for summarization')
+
+    content = generate_summary(book.title, sections, depth=depth)
+
+    summary_obj = BookSummary(book_id=book_id, depth=depth, content=content)
+    db.add(summary_obj)
+    db.commit()
+
+    return {
+        'book_id': book_id,
+        'depth': depth,
+        'content': content,
+        'generated_at': summary_obj.generated_at,
+    }

@@ -7,7 +7,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.api import admin, auth, billing, books, daily, drive_import, kindle, notifications, reviews, support, topics
+from app.api import admin, auth, billing, books, daily, drive_import, kindle, notifications, reviews, roadmap, support, topics
 from app.core.config import settings
 from app.db.base import Base, engine
 
@@ -43,6 +43,7 @@ app.include_router(admin.router)
 app.include_router(drive_import.router)
 app.include_router(topics.router)
 app.include_router(kindle.router)
+app.include_router(roadmap.router)
 
 
 @app.exception_handler(402)

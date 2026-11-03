@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Circle, PlayCircle, BookOpen, AlertCircle, Compass } from 'lucide-react'
+import { ArrowLeft, BookOpen, Compass, ChevronRight, Play } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/lib/api'
 import AppShell from '@/components/AppShell'
@@ -12,35 +12,14 @@ interface Book {
   id: string
   title: string
   status: string
+  content_mode?: string
 }
 
-interface RoadmapItem {
-  id: string
-  days: string
-  chapter: string
-  title: string
-  state: 'done' | 'current' | 'upcoming'
-  points: number
-}
-
-export default function RoadmapPage() {
+export default function GlobalRoadmapPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  
   const [books, setBooks] = useState<Book[]>([])
-  const [selectedBook, setSelectedBook] = useState<string>('')
   const [loading, setLoading] = useState(true)
-
-  // Mock Roadmap data generated per chapter range
-  const roadmapData: Record<string, RoadmapItem[]> = {
-    default: [
-      { id: '1', days: 'Day 1–3', chapter: 'Chapter 1', title: 'Introduction & Foundations', state: 'done', points: 15 },
-      { id: '2', days: 'Day 4–7', chapter: 'Chapter 2', title: 'Core Principles of Learning', state: 'done', points: 25 },
-      { id: '3', days: 'Day 8–11', chapter: 'Chapter 3', title: 'Application & Methods', state: 'current', points: 20 },
-      { id: '4', days: 'Day 12–15', chapter: 'Chapter 4', title: 'Advanced Synthesis', state: 'upcoming', points: 30 },
-      { id: '5', days: 'Day 16–20', chapter: 'Chapter 5', title: 'Summary & Integration', state: 'upcoming', points: 20 },
-    ]
-  }
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login')
@@ -51,131 +30,87 @@ export default function RoadmapPage() {
       try {
         const list = await api.listBooks()
         setBooks(list)
-        if (list.length > 0) {
-          setSelectedBook(list[0].id)
-        }
       } catch (err) {
-        console.error('Failed to load books for roadmap:', err)
+        console.error('Failed to load books:', err)
       } finally {
         setLoading(false)
       }
     }
-    loadBooks()
-  }, [])
+    if (user) loadBooks()
+  }, [user])
 
-  if (authLoading || !user || loading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app-bg">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-      </div>
+      <AppShell>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AppShell>
     )
   }
 
-  const activeRoadmap = roadmapData[selectedBook] || roadmapData.default
-
   return (
     <AppShell>
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-12 hover:bg-gray-100 text-app-subtext transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-app-text">Reading Roadmap</h1>
-              <p className="text-xs text-app-subtext">Track your chapter schedule</p>
-            </div>
-          </div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#F5A623] mb-1">
+            Learning Paths
+          </p>
+          <h1 className="font-serif text-3xl font-semibold text-[#111111]">
+            Reading Roadmaps
+          </h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Select a book to continue your gamified learning milestones
+          </p>
         </div>
 
         {books.length > 0 ? (
-          <div className="space-y-6">
-            {/* Book Selector */}
-            <div className="card flex items-center justify-between py-3 px-4">
-              <span className="text-xs font-semibold text-app-subtext flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-primary" /> Select Book
-              </span>
-              <select
-                value={selectedBook}
-                onChange={(e) => setSelectedBook(e.target.value)}
-                className="bg-transparent text-sm font-semibold text-app-text outline-none cursor-pointer"
+          <div className="space-y-3">
+            {books.map(b => (
+              <div
+                key={b.id}
+                className="bg-white rounded-[24px] border border-[#E4E4E7] p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all group"
               >
-                {books.map(b => (
-                  <option key={b.id} value={b.id}>{b.title}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Vertical Roadmap Timeline */}
-            <div className="card space-y-8 relative">
-              {/* Vertical connecting line */}
-              <div className="absolute left-[29px] top-8 bottom-8 w-0.5 bg-app-border z-0" />
-
-              {activeRoadmap.map((item, idx) => {
-                const isDone = item.state === 'done'
-                const isCurrent = item.state === 'current'
-                const isUpcoming = item.state === 'upcoming'
-
-                return (
-                  <div key={item.id} className="flex gap-4 items-start relative z-10">
-                    
-                    {/* Status Circle indicator */}
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white flex-shrink-0">
-                      {isDone && <CheckCircle2 className="w-6 h-6 text-app-success fill-white" />}
-                      {isCurrent && <PlayCircle className="w-6 h-6 text-primary fill-white animate-pulse" />}
-                      {isUpcoming && <Circle className="w-6 h-6 text-app-subtext fill-white" />}
-                    </div>
-
-                    {/* Timeline Content Card */}
-                    <div className={`flex-1 p-4 rounded-16 border transition-all ${
-                      isCurrent 
-                        ? 'border-primary/30 bg-primary/5 shadow-sm'
-                        : 'border-app-border bg-white'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          isDone 
-                            ? 'bg-green-50 text-app-success' 
-                            : isCurrent 
-                              ? 'bg-primary/10 text-primary' 
-                              : 'bg-gray-100 text-app-subtext'
-                        }`}>
-                          {item.days}
-                        </span>
-                        
-                        <span className="text-xs font-semibold text-app-subtext">
-                          +{item.points} pts
-                        </span>
-                      </div>
-
-                      <h3 className="text-sm font-bold text-app-text mt-2">{item.chapter}</h3>
-                      <p className="text-xs text-app-subtext mt-0.5">{item.title}</p>
-
-                      {isCurrent && (
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-[10px] font-medium text-primary flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></span>
-                            Active reading block
-                          </span>
-                          <Link href="/review" className="text-xs font-bold text-primary hover:underline">
-                            Open Flashcards
-                          </Link>
-                        </div>
-                      )}
-                    </div>
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-[#FFF5E8] text-[#C2720F] flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-5 h-5 text-[#F5A623]" />
                   </div>
-                )
-              })}
-            </div>
+                  <div className="min-w-0">
+                    <p className="font-serif font-semibold text-neutral-900 text-base truncate">
+                      {b.title}
+                    </p>
+                    <span className="text-[11px] text-neutral-400 capitalize">
+                      {b.content_mode || 'Reading Journey'}
+                    </span>
+                  </div>
+                </div>
+
+                <Link
+                  href={`/books/${b.id}/roadmap`}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#111111] hover:bg-black text-white text-xs font-semibold shadow-sm transition-all flex-shrink-0 active:scale-95"
+                >
+                  <Play className="w-3.5 h-3.5 fill-[#F5A623] text-[#F5A623]" />
+                  <span>Open Roadmap</span>
+                </Link>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="card text-center py-12">
-            <Compass className="w-12 h-12 text-primary-200 mx-auto mb-3" />
-            <p className="font-semibold text-app-text mb-1">No roadmaps available</p>
-            <p className="text-app-subtext text-sm mb-4">Please upload a book first to configure its learning roadmap.</p>
-            <Link href="/books" className="btn-primary inline-flex">Upload Book</Link>
+          <div className="bg-white rounded-[28px] border border-[#E4E4E7] text-center py-16 px-4 shadow-sm">
+            <Compass className="w-12 h-12 text-[#F5A623]/60 mx-auto mb-3" />
+            <h2 className="font-serif text-lg font-semibold text-neutral-900 mb-1">
+              No roadmaps available
+            </h2>
+            <p className="text-neutral-500 text-xs sm:text-sm mb-6">
+              Upload a book PDF first to auto-generate its interactive learning roadmap.
+            </p>
+            <Link
+              href="/books"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#111111] hover:bg-black text-white text-xs font-semibold shadow-md transition-all"
+            >
+              <span>Upload Book</span>
+              <span className="text-[#F5A623]">➔</span>
+            </Link>
           </div>
         )}
       </div>

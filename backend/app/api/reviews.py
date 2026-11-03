@@ -28,6 +28,8 @@ def get_due_cards(db: Session = Depends(get_db), current_user: User = Depends(ge
     return [
         {
             "card_id": fc.id,
+            "book_id": fc.book_id,
+            "page_number": getattr(fc, "page_number", None),
             "front": fc.front,
             "back": fc.back,
             "card_type": getattr(fc, "card_type", None),
@@ -39,7 +41,6 @@ def get_due_cards(db: Session = Depends(get_db), current_user: User = Depends(ge
     ]
 
 
-
 @router.post("/{card_id}")
 def submit_review(card_id: str, payload: ReviewRequest, db: Session = Depends(get_db), current_user: User = Depends(require_active_access)):
     state = (
@@ -48,18 +49,15 @@ def submit_review(card_id: str, payload: ReviewRequest, db: Session = Depends(ge
         .first()
     )
     if not state:
-        raise HTTPException(404, "Review state not found for this card")
+        raise HTTPException(404, "Card not found in user's review queue")
 
-    try:
-        current = ReviewStateData(
-            ease_factor=state.ease_factor,
-            interval=state.interval,
-            repetitions=state.repetitions,
-            next_review_date=state.next_review_date,
-        )
-        updated = update_review_state(current, payload.response)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+    current = ReviewStateData(
+        ease_factor=state.ease_factor,
+        interval=state.interval,
+        repetitions=state.repetitions,
+        next_review_date=state.next_review_date,
+    )
+    updated = update_review_state(current, payload.response)
 
     state.ease_factor = updated.ease_factor
     state.interval = updated.interval
@@ -67,9 +65,4 @@ def submit_review(card_id: str, payload: ReviewRequest, db: Session = Depends(ge
     state.next_review_date = updated.next_review_date
     db.commit()
 
-    return {
-        "card_id": card_id,
-        "ease_factor": state.ease_factor,
-        "interval": state.interval,
-        "next_review_date": state.next_review_date,
-    }
+    return {"status": "ok", "next_review_date": str(state.next_review_date)}

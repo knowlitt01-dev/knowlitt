@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Trophy, RotateCcw, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { ArrowLeft, Trophy, RotateCcw, CheckCircle2, XCircle, Loader2, FileText } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/lib/api'
 import AppShell from '@/components/AppShell'
+import PageViewerModal from '@/components/PageViewerModal'
 
 interface DueCard {
   card_id: string
+  book_id?: string
+  page_number?: number | null
   front: string
   back: string
   card_type?: string
@@ -24,6 +27,7 @@ export default function ReviewPage() {
   const [done, setDone]         = useState(false)
   const [loading, setLoading]   = useState(true)
   const [animating, setAnimating] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
   const { user }                = useAuth()
   const router                  = useRouter()
 
@@ -124,7 +128,7 @@ export default function ReviewPage() {
         >
           <div
             className={`
-              rounded-[28px] p-8 sm:p-10 min-h-[300px] flex flex-col items-center justify-center text-center
+              rounded-[28px] p-8 sm:p-10 min-h-[300px] flex flex-col items-center justify-center text-center relative
               transition-all duration-500 shadow-xl border
               ${flipped
                 ? (isCompanion ? 'bg-[#FFFBF5] border-[#FFE9C9]' : 'bg-[#FAFAF8] border-[#E4E4E7]')
@@ -132,10 +136,25 @@ export default function ReviewPage() {
               }
             `}
           >
+            {/* View Original Page Action Button */}
+            {card.book_id && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setViewerOpen(true)
+                }}
+                className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-neutral-100 text-neutral-700 text-xs font-semibold border border-neutral-200 shadow-sm transition-all z-10"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#F5A623]" />
+                <span>{card.page_number ? `See Page ${card.page_number}` : 'See in Book'}</span>
+              </button>
+            )}
+
             <p className="text-[11px] font-bold uppercase tracking-widest mb-4 text-[#F5A623]">
               {flipped ? (isCompanion ? '💬 Reflection Guide' : 'Key Insight') : (isCompanion ? 'Prompt' : 'Concept Question')}
             </p>
-            <p className="font-serif text-xl sm:text-2xl font-medium text-[#111111] leading-relaxed">
+            <p className="font-serif text-xl sm:text-2xl font-medium text-[#111111] leading-relaxed px-4">
               {flipped ? card.back : card.front}
             </p>
             {!flipped && (
@@ -187,6 +206,16 @@ export default function ReviewPage() {
         </button>
 
       </div>
+
+      {/* Page Viewer Modal */}
+      {card?.book_id && (
+        <PageViewerModal
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          bookId={card.book_id}
+          pageNumber={card.page_number}
+        />
+      )}
     </AppShell>
   )
 }

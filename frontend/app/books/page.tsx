@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Upload, HardDrive, BookOpen, Trash2, ChevronRight,
-  CloudLightning, AlertCircle, CheckCircle2,
+  CloudLightning, AlertCircle, CheckCircle2, Play, FileText,
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import { api, ApiError } from '@/lib/api'
@@ -186,44 +186,62 @@ export default function BooksPage() {
                 const daysLeft = Math.max(1, 21 - Math.floor(progress / 5))
                 const isCompanion = book.content_mode === 'companion'
                 return (
-                  <div key={book.id} className="bg-white rounded-[24px] border border-[#E4E4E7] p-5 flex items-center gap-4 hover:shadow-md transition-all group shadow-sm">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${isCompanion ? 'bg-[#FFF5E8] text-[#C2720F]' : 'bg-neutral-100 text-neutral-800'}`}>
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-serif font-semibold text-neutral-900 text-base truncate">{book.title}</p>
-                        {book.content_mode && (
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${isCompanion ? 'bg-[#FFF5E8] text-[#C2720F] border-[#FFE9C9]' : 'bg-neutral-100 text-neutral-700 border-neutral-200'}`}>
-                            {isCompanion ? '📖 Companion' : '🧠 Extraction'}
-                          </span>
-                        )}
+                  <div key={book.id} className="bg-white rounded-[24px] border border-[#E4E4E7] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-md transition-all group shadow-sm">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isCompanion ? 'bg-[#FFF5E8] text-[#C2720F]' : 'bg-neutral-100 text-neutral-800'}`}>
+                        <BookOpen className="w-6 h-6" />
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex-1 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
-                          <div className="h-full rounded-full bg-[#F5A623]" style={{ width: `${progress}%` }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-serif font-semibold text-neutral-900 text-base truncate">{book.title}</p>
+                          {book.content_mode && (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${isCompanion ? 'bg-[#FFF5E8] text-[#C2720F] border-[#FFE9C9]' : 'bg-neutral-100 text-neutral-700 border-neutral-200'}`}>
+                              {isCompanion ? '📖 Companion' : '🧠 Extraction'}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[11px] text-neutral-400 font-semibold w-12 text-right flex-shrink-0">
-                          {progress}%
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${book.status === 'processing' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                          {book.status === 'processing' ? '⏳ Processing' : '✓ Ready'}
-                        </span>
-                        {book.genre && (
-                          <span className="text-[11px] text-neutral-400 capitalize">{book.genre}{book.sub_genre ? ` (${book.sub_genre})` : ''}</span>
-                        )}
-                        <span className="text-[11px] text-neutral-400">{daysLeft} days remaining</span>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${book.status === 'processing' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                            {book.status === 'processing' ? '⏳ Processing' : '✓ Ready'}
+                          </span>
+                          {book.genre && (
+                            <span className="text-[11px] text-neutral-400 capitalize">{book.genre}{book.sub_genre ? ` (${book.sub_genre})` : ''}</span>
+                          )}
+                          <span className="text-[11px] text-neutral-400">{daysLeft} days remaining</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Link href={`/books/${book.id}/setup`} className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors">
+
+                    {/* Action buttons including Start button */}
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {/* Start / Roadmap button */}
+                      <Link
+                        href={`/books/${book.id}/roadmap`}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#111111] hover:bg-black text-white text-xs font-semibold shadow-sm transition-all active:scale-95"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-[#F5A623] text-[#F5A623]" />
+                        <span>Start</span>
+                      </Link>
+
+                      <Link
+                        href={`/books/${book.id}/summary`}
+                        className="p-2.5 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors"
+                        title="AI Summary"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Link>
+
+                      <Link
+                        href={`/books/${book.id}/setup`}
+                        className="p-2.5 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors"
+                        title="Book Setup"
+                      >
                         <CloudLightning className="w-4 h-4" />
                       </Link>
+
                       <button
                         onClick={() => handleRemove(book.id)}
-                        className="p-2 rounded-full hover:bg-red-50 text-neutral-400 hover:text-red-600 transition-colors"
+                        className="p-2.5 rounded-full hover:bg-red-50 text-neutral-400 hover:text-red-600 transition-colors"
                         title="Remove book"
                       >
                         <Trash2 className="w-4 h-4" />

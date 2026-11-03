@@ -5,7 +5,6 @@ export function googleOAuthUrl(): string {
   return `${API_URL}/auth/google/authorize`;
 }
 
-
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('bt_token');
@@ -70,6 +69,19 @@ export const api = {
   dueCards: () => request('/reviews/due'),
   submitReview: (cardId: string, response: string) =>
     request(`/reviews/${cardId}`, { method: 'POST', body: JSON.stringify({ response }) }),
+
+  // Roadmap & Progression
+  getRoadmap: (bookId: string) => request(`/books/${bookId}/roadmap`),
+  getLevelContent: (bookId: string, levelId: string) =>
+    request(`/books/${bookId}/roadmap/${levelId}/content`),
+  completeLevel: (bookId: string, levelId: string) =>
+    request(`/books/${bookId}/roadmap/${levelId}/complete`, { method: 'POST' }),
+
+  // View Original Page & AI Summarization
+  getBookPage: (bookId: string, pageNumber: number) =>
+    request(`/books/${bookId}/page/${pageNumber}`),
+  getBookSummary: (bookId: string, depth: 'quick' | 'detailed' | 'comprehensive' = 'detailed') =>
+    request(`/books/${bookId}/summary?depth=${depth}`),
 
   // Billing / subscription
   billingStatus: () => request('/billing/status'),

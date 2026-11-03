@@ -81,6 +81,8 @@ class Book(Base):
     owner: Mapped["User"] = relationship(back_populates="books")
     insights: Mapped[list["Insight"]] = relationship(back_populates="book", cascade="all, delete-orphan")
     flashcards: Mapped[list["Flashcard"]] = relationship(back_populates="book", cascade="all, delete-orphan")
+    reading_levels: Mapped[list["ReadingLevel"]] = relationship(cascade="all, delete-orphan")
+    summaries: Mapped[list["BookSummary"]] = relationship(cascade="all, delete-orphan")
 
 
 class Insight(Base):
@@ -99,6 +101,8 @@ class Insight(Base):
     # Daily delivery pulls segments in order, never skipping ahead.
     section_index: Mapped[int] = mapped_column(Integer, default=0)
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
 
     book: Mapped["Book"] = relationship(back_populates="insights")
@@ -111,6 +115,8 @@ class Flashcard(Base):
     book_id: Mapped[str] = mapped_column(String, ForeignKey("books.id"))
     front: Mapped[str] = mapped_column(Text)
     back: Mapped[str] = mapped_column(Text)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
 
     book: Mapped["Book"] = relationship(back_populates="flashcards")
@@ -208,3 +214,48 @@ class TopicSearchLog(Base):
     topic_name: Mapped[str] = mapped_column(String, index=True)
     user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc, index=True)
+
+class ReadingLevel(Base):
+    """Auto-generated learning milestones for a book's roadmap."""
+    __tablename__ = "reading_levels"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
+    book_id: Mapped[str] = mapped_column(String, ForeignKey("books.id"), index=True)
+    level_index: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    level_type: Mapped[str] = mapped_column(String, default="reading")  # reading|summary|review|quiz
+    xp_points: Mapped[int] = mapped_column(Integer, default=10)
+    section_start: Mapped[int] = mapped_column(Integer, default=0)
+    section_end: Mapped[int] = mapped_column(Integer, default=0)
+
+    book: Mapped["Book"] = relationship()
+    progress_records: Mapped[list["UserLevelProgress"]] = relationship(back_populates="level", cascade="all, delete-orphan")
+
+
+class UserLevelProgress(Base):
+    """Tracks which reading levels a user has completed per book."""
+    __tablename__ = "user_level_progress"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    book_id: Mapped[str] = mapped_column(String, ForeignKey("books.id"), index=True)
+    level_id: Mapped[str] = mapped_column(String, ForeignKey("reading_levels.id"), index=True)
+    state: Mapped[str] = mapped_column(String, default="available")  # available|in_progress|completed
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    xp_earned: Mapped[int] = mapped_column(Integer, default=0)
+
+    level: Mapped["ReadingLevel"] = relationship(back_populates="progress_records")
+
+
+class BookSummary(Base):
+    """Cached hierarchical summaries at different depth levels."""
+    __tablename__ = "book_summaries"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
+    book_id: Mapped[str] = mapped_column(String, ForeignKey("books.id"), index=True)
+    depth: Mapped[str] = mapped_column(String, default="detailed")  # quick|detailed|comprehensive
+    content: Mapped[str] = mapped_column(Text)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=now_utc)
+
+    book: Mapped["Book"] = relationship()

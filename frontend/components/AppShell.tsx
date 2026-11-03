@@ -44,7 +44,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           fixed top-0 left-0 h-full w-64 bg-white border-r border-[#E4E4E7] z-40
           flex flex-col transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:flex
+          lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:flex
         `}
       >
         {/* Brand Header */}
